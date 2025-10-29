@@ -4,6 +4,11 @@ continuum is a library for working with intervals over continuous, total-ordered
 
 [![Build Status](https://travis-ci.org/danburkert/continuum.png)](https://travis-ci.org/danburkert/continuum)
 
+## Requirements
+
+- Scala 2.13.17 (migrated from 2.11.8 by Claude Code)
+- SBT 1.11.7 or later
+
 ## Interval
 An interval is a non-empty, two sided bound over a continuous, infinite, total-ordered set of values. An interval contains all values between its lower and upper bound. Additionally, the upper or lower bound of the interval may be unbounded, in which case the interval contains all values above or below, respectively.  Intervals provide a rich interface of constructors and set-like operations:
 

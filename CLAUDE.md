@@ -81,4 +81,20 @@ Tests use ScalaTest with property-based testing (ScalaCheck):
 
 ## Scala Version
 
-Project uses Scala 2.11.8 (compatible with Scala 2.11.x series).
+Project uses Scala 2.13.17 (migrated from 2.11.8).
+
+### Scala 2.13 Collections API
+
+The library has been updated to use the Scala 2.13 collections architecture:
+
+- `IntervalSet` extends `AbstractSet`, `SortedSet`, `SortedSetOps`, and `StrictOptimizedSortedSetOps`
+- Uses `incl`/`excl` methods instead of `+`/`-` for adding/removing elements
+- Implements `fromSpecific`, `newSpecificBuilder`, and `iteratorFrom` for the new collections framework
+- Builder pattern uses `addOne`, `clear`, and `result` methods
+- Tests updated to use `AnyPropSpec` and `ScalaCheckPropertyChecks` from ScalaTest 3.2+
+
+### Dependencies
+
+- ScalaTest 3.2.19
+- ScalaCheck 1.18.1
+- ScalaTestPlus ScalaCheck integration 3.2.19.0
