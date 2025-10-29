@@ -1,25 +1,35 @@
 package scala.collection.immutable
 
-import scala.collection.generic.CanBuildFrom
 import scala.collection.immutable.{RedBlackTree => RB}
-import scala.collection.{GenSet, SortedSetLike, mutable}
+import scala.collection.mutable
 
 import continuum.Interval
 
-object IntervalSet extends {
+object IntervalSet {
   def empty[T](implicit conv: T=>Ordered[T]): IntervalSet[T] = new IntervalSet()
 
   def apply[T](intervals: Interval[T]*)(implicit conv: T=>Ordered[T]): IntervalSet[T] =
     intervals.foldLeft(empty[T])(_ + _)
 
   def newBuilder[T](implicit conv: T=>Ordered[T]): mutable.Builder[Interval[T], IntervalSet[T]] =
-    new mutable.SetBuilder[Interval[T], IntervalSet[T]](empty)
+    new mutable.Builder[Interval[T], IntervalSet[T]] {
+      private var set = empty[T]
+      def addOne(elem: Interval[T]): this.type = {
+        set = set.incl(elem)
+        this
+      }
+      def clear(): Unit = {
+        set = empty[T]
+      }
+      def result(): IntervalSet[T] = set
+    }
 
-  implicit def canBuildFrom[T](implicit conv: T=>Ordered[T])
-  : CanBuildFrom[IntervalSet[_], Interval[T], IntervalSet[T]] =
-    new CanBuildFrom[IntervalSet[_], Interval[T], IntervalSet[T]] {
-      def apply(from: IntervalSet[_]): mutable.Builder[Interval[T], IntervalSet[T]] = newBuilder[T]
-      def apply(): mutable.Builder[Interval[T], IntervalSet[T]] = newBuilder[T]
+  implicit def buildFrom[T](implicit conv: T=>Ordered[T]): collection.BuildFrom[IntervalSet[_], Interval[T], IntervalSet[T]] =
+    new collection.BuildFrom[IntervalSet[_], Interval[T], IntervalSet[T]] {
+      def fromSpecific(from: IntervalSet[_])(it: IterableOnce[Interval[T]]): IntervalSet[T] =
+        it.iterator.foldLeft(empty[T])(_ + _)
+      def newBuilder(from: IntervalSet[_]): mutable.Builder[Interval[T], IntervalSet[T]] =
+        IntervalSet.newBuilder[T]
     }
 }
 
@@ -29,13 +39,21 @@ object IntervalSet extends {
  * Interval sets are immutable and persistent.
  */
 class IntervalSet[T](tree: RB.Tree[Interval[T], Unit])(implicit conv: T=>Ordered[T])
-  extends SortedSet[Interval[T]]
-  with SortedSetLike[Interval[T], IntervalSet[T]]
+  extends AbstractSet[Interval[T]]
+  with SortedSet[Interval[T]]
+  with SortedSetOps[Interval[T], SortedSet, IntervalSet[T]]
+  with StrictOptimizedSortedSetOps[Interval[T], SortedSet, IntervalSet[T]]
   with Serializable {
 
   def this()(implicit conv: T=>Ordered[T]) = this(null)
 
   override def ordering: Ordering[Interval[T]] = Ordering.ordered
+
+  override protected def fromSpecific(coll: IterableOnce[Interval[T]]): IntervalSet[T] =
+    coll.iterator.foldLeft(IntervalSet.empty[T])(_ + _)
+
+  override protected def newSpecificBuilder: mutable.Builder[Interval[T], IntervalSet[T]] =
+    IntervalSet.newBuilder[T]
 
   override def stringPrefix = "IntervalSet"
 
@@ -86,14 +104,14 @@ class IntervalSet[T](tree: RB.Tree[Interval[T], Unit])(implicit conv: T=>Ordered
 
   override def empty: IntervalSet[T] = IntervalSet.empty
 
-  override def + (interval: Interval[T]): IntervalSet[T] = {
+  def incl(interval: Interval[T]): IntervalSet[T] = {
     val unionables: IntervalSet[T] = unioning(interval)
     val union = unionables.foldLeft(interval)((a, b) => (a union b).get)
     val diff = unionables.foldLeft(tree)(RB.delete(_, _))
     newSet(RB.update(diff, union, (), false))
   }
 
-  override def - (interval: Interval[T]): IntervalSet[T] = {
+  def excl(interval: Interval[T]): IntervalSet[T] = {
     val intersectings = intersecting(interval)
     val differences = intersectings.flatMap(_ difference interval)
     val diff = intersectings.foldLeft(tree)(RB.delete(_, _))
@@ -109,18 +127,14 @@ class IntervalSet[T](tree: RB.Tree[Interval[T], Unit])(implicit conv: T=>Ordered
 
   override def iterator: Iterator[Interval[T]] = RB.keysIterator(tree)
 
-  def keysIteratorFrom(start: Interval[T]): Iterator[Interval[T]] = {
-    val keys = RB.keysIterator(tree)
-    keys.drop(keys.indexOf(start))
+  override def iteratorFrom(start: Interval[T]): Iterator[Interval[T]] = {
+    RB.keysIterator(RB.from(tree, start))
   }
 
   override def foreach[U](f: Interval[T] =>  U) = RB.foreachKey(tree, f)
 
   override def rangeImpl(from: Option[Interval[T]], until: Option[Interval[T]]): IntervalSet[T] = newSet(RB.rangeImpl(tree, from, until))
   override def range(from: Interval[T], until: Interval[T]): IntervalSet[T] = newSet(RB.range(tree, from, until))
-  override def from(from: Interval[T]): IntervalSet[T] = newSet(RB.from(tree, from))
-  override def to(to: Interval[T]): IntervalSet[T] = newSet(RB.to(tree, to))
-  override def until(until: Interval[T]): IntervalSet[T] = newSet(RB.until(tree, until))
 
   override def firstKey = head
   override def lastKey = last
@@ -155,8 +169,8 @@ class IntervalSet[T](tree: RB.Tree[Interval[T], Unit])(implicit conv: T=>Ordered
     IntervalSet(intersecting(interval).toList.flatMap(_ intersect interval):_*)
 
 
-  override def intersect(other: GenSet[Interval[T]]): IntervalSet[T] =
-    other.foldLeft(empty)(_ ++ intersect(_))
+  def intersect(that: Set[Interval[T]]): IntervalSet[T] =
+    that.foldLeft(IntervalSet.empty[T])((acc, interval) => acc ++ this.intersect(interval))
 
   /**
    * Alias for `intersect`.
@@ -183,5 +197,8 @@ class IntervalSet[T](tree: RB.Tree[Interval[T], Unit])(implicit conv: T=>Ordered
 
   def span: Option[Interval[T]] = if (!RB.isEmpty(tree)) Some(head span last) else None
 
-  def complement: IntervalSet[T] = IntervalSet(Interval.all[T]) -- this
+  def complement: IntervalSet[T] = {
+    val full = IntervalSet(Interval.all[T])
+    this.foldLeft(full)((acc, interval) => acc - interval)
+  }
 }

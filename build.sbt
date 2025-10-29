@@ -4,8 +4,10 @@ name := "continuum"
 
 version := "0.4-SNAPSHOT"
 
-scalaVersion := "2.11.8"
+scalaVersion := "2.13.17"
 
-libraryDependencies += "org.scalacheck" % "scalacheck_2.11" % "1.13.2" % "provided"
+libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.18.1" % "provided"
 
-libraryDependencies += "org.scalatest" % "scalatest_2.11" % "3.0.0" % "test"
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % "test"
+
+libraryDependencies += "org.scalatestplus" %% "scalacheck-1-18" % "3.2.19.0" % "test"
