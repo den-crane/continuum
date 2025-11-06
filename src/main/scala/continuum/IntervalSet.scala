@@ -55,7 +55,7 @@ class IntervalSet[T](tree: RB.Tree[Interval[T], Unit])(implicit conv: T=>Ordered
   override protected def newSpecificBuilder: mutable.Builder[Interval[T], IntervalSet[T]] =
     IntervalSet.newBuilder[T]
 
-  override def stringPrefix = "IntervalSet"
+  override def className = "IntervalSet"
 
   override def size = RB.count(tree)
 
@@ -154,13 +154,13 @@ class IntervalSet[T](tree: RB.Tree[Interval[T], Unit])(implicit conv: T=>Ordered
       }
     }
     loop(tree)
-    IntervalSet(buf.toArray:_*)
+    IntervalSet(buf.toSeq:_*)
   }
 
   /**
    * Tests if the provided interval intersects with any of the intervals in this set.
    */
-  def intersects(interval: Interval[T]): Boolean = from(interval).head intersects interval
+  def intersects(interval: Interval[T]): Boolean = rangeFrom(interval).head intersects interval
 
   /**
    * Returns the the result of the intervals in this set intersected with the given interval.
@@ -192,7 +192,7 @@ class IntervalSet[T](tree: RB.Tree[Interval[T], Unit])(implicit conv: T=>Ordered
       }
     }
     loop(tree)
-    IntervalSet(buf.toArray:_*)
+    IntervalSet(buf.toSeq:_*)
   }
 
   def span: Option[Interval[T]] = if (!RB.isEmpty(tree)) Some(head span last) else None

@@ -162,11 +162,11 @@ trait Generators {
   }
 
   implicit def arbIntervalSet[T : Arbitrary](implicit conv: T => Ordered[T]): Arbitrary[IntervalSet[T]] =
-    Arbitrary(for (intervals <- arbitrary[Array[Interval[T]]]) yield IntervalSet(intervals:_*))
+    Arbitrary(for (intervals <- arbitrary[Array[Interval[T]]]) yield IntervalSet(intervals.toSeq:_*))
 
   /**
    * Generates arbitrary interval sets of Ints using the more efficient Int interval generator.
    */
   implicit def arbIntIntervalSet: Arbitrary[IntervalSet[Int]] =
-    Arbitrary(for (intervals <- arbitrary[Array[Interval[Int]]]) yield IntervalSet(intervals:_*))
+    Arbitrary(for (intervals <- arbitrary[Array[Interval[Int]]]) yield IntervalSet(intervals.toSeq:_*))
 }
