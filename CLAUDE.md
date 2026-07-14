@@ -34,24 +34,22 @@ sbt package
 
 The library is built on a hierarchy of abstractions from low-level to high-level:
 
-1. **Bound** (`Bound.scala`) - Foundation level
-   - Represents a single bound (Closed, Open, or Unbounded)
-   - Located in `continuum.bound` package
-   - Internal implementation detail for Ray
+1. **Cut** (`Cut.scala`) - Foundation level
+   - A totally-ordered cut point in the value space:
+     `BelowAll < BelowValue(a) < AboveValue(a) < BelowValue(b) < AboveValue(b) < AboveAll` (for a < b)
+   - Every bound shape is a choice of cut: closed lower / open upper at `v` is `BelowValue(v)`,
+     open lower / closed upper at `v` is `AboveValue(v)`, missing bounds are `BelowAll`/`AboveAll`
+   - `Cut.ordering[T]` derives `Ordering[Cut[T]]` from `Ordering[T]`
 
-2. **Ray** (`Ray.scala`) - Half-space level
-   - A bounded subset with a direction (Lesser or Greater)
-   - `GreaterRay[T]`: bounded below, points towards larger values
-   - `LesserRay[T]`: bounded above, points towards smaller values
-   - Used to compose Interval bounds
-
-3. **Interval** (`Interval.scala`) - Range level
-   - Composed of a `GreaterRay` (lower) and `LesserRay` (upper)
+2. **Interval** (`Interval.scala`) - Range level
+   - Composed of a lower and an upper `Cut`; non-empty iff `lower < upper` (the construction invariant)
+   - Every operation is a cut comparison: intersects is `lower < other.upper && other.lower < upper`,
+     unions is the same with `<=`, encloses is `lower <= other.lower && other.upper <= upper`
    - Supports set operations: intersect, union, span, difference
    - Can be created from tuples and Ranges via implicit conversions
    - Cannot be empty (returns `Option` for operations that might yield empty intervals)
 
-4. **IntervalSet** (`IntervalSet.scala`) - Set level
+3. **IntervalSet** (`IntervalSet.scala`) - Set level
    - Immutable, persistent set of intervals
    - Automatically coalesces overlapping/tangent intervals
    - Implements full Scala `SortedSet` API
@@ -78,7 +76,7 @@ Tests use ScalaTest with property-based testing (ScalaCheck):
 - All types require an implicit `Ordering[T]` for comparison (context bound style)
 - `IntervalSet` lives in the `continuum` package and wraps an immutable `TreeSet`; the coalescing invariant (members are pairwise disjoint and non-tangent) makes candidate lookup a contiguous run reachable via `maxBefore`/`iteratorFrom`
 - The validation logic ensures intervals are never empty at construction time
-- Ray intersection/tangent logic is the foundation for interval operations
+- The total order on cuts is the foundation for all interval operations
 
 ## Scala Version
 
