@@ -151,6 +151,63 @@ class IntervalSpec extends AnyPropSpec with ScalaCheckPropertyChecks with Matche
   }
 
   /**
+   * map, lesser/greater, conversions
+   */
+
+  property("map with a monotonic function preserves containment") {
+    forAll { (interval: Interval[Int], point: Int) =>
+      val mapped = interval.map(_.toLong * 2)
+      mapped(point.toLong * 2) should be(interval(point))
+    }
+  }
+
+  property("map with identity is identity") {
+    forAll { (interval: Interval[Int]) =>
+      interval.map(identity[Int]) should equal(interval)
+    }
+  }
+
+  property("lesser and greater partition the space around the interval") {
+    forAll { (interval: Interval[Int]) =>
+      interval.lesser.isDefined should be(interval.lower != Cut.BelowAll)
+      interval.greater.isDefined should be(interval.upper != Cut.AboveAll)
+      interval.lesser.foreach { lesser =>
+        lesser intersects interval should be(false)
+        lesser tangents interval should be(true)
+        lesser union interval should equal(Some(Interval(Cut.BelowAll, interval.upper)))
+      }
+      interval.greater.foreach { greater =>
+        greater intersects interval should be(false)
+        greater tangents interval should be(true)
+        greater union interval should equal(Some(Interval(interval.lower, Cut.AboveAll)))
+      }
+    }
+  }
+
+  property("tuples convert to closed-open intervals") {
+    forAll { (a: Int, b: Int) =>
+      whenever(a < b) {
+        val interval: Interval[Int] = (a, b)
+        interval should equal(Interval.closedOpen(a, b))
+      }
+    }
+  }
+
+  property("ranges convert to intervals and back") {
+    forAll { (range: Range) =>
+      val interval: Interval[Int] = range
+      interval should equal(Interval.closed(range.start, range.end))
+      interval.toRange should equal(range)
+    }
+  }
+
+  property("range conversions respect inclusiveness and reject non-unit steps") {
+    (1 until 10: Interval[Int]) should equal(Interval.closedOpen(1, 10))
+    (1 to 10: Interval[Int]) should equal(Interval.closed(1, 10))
+    an[IllegalArgumentException] should be thrownBy Interval.fromRange(1 to 10 by 2)
+  }
+
+  /**
    * normalize
    */
 
