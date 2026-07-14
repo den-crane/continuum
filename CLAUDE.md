@@ -81,7 +81,7 @@ Tests use ScalaTest with property-based testing (ScalaCheck):
 
 ## Scala Version
 
-Project uses Scala 2.13.17 (migrated from 2.11.8).
+Project uses Scala 2.13.18 (migrated from 2.11.8).
 
 ### Scala 2.13 Collections API
 

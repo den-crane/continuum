@@ -4,7 +4,7 @@ name := "continuum"
 
 version := "0.4-SNAPSHOT"
 
-scalaVersion := "2.13.17"
+scalaVersion := "2.13.18"
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 

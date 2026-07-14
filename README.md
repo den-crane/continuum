@@ -6,7 +6,7 @@ continuum is a library for working with intervals over continuous, total-ordered
 
 ## Requirements
 
-- Scala 2.13.17 (migrated from 2.11.8 by Claude Code)
+- Scala 2.13.18 (migrated from 2.11.8 by Claude Code)
 - SBT 1.11.7 or later
 
 ## Interval

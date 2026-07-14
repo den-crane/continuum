@@ -77,19 +77,19 @@ trait Generators {
     } yield new Interval(lower, upper)
   }
 
-  implicit def shrinkGreaterRay[T : Shrink](implicit conv: T => Ordered[T]): Shrink[GreaterRay[T]] = Shrink { ray =>
+  implicit def shrinkGreaterRay[T : Shrink](implicit conv: T => Ordered[T]): Shrink[GreaterRay[T]] = Shrink.withLazyList { ray =>
     ray.bound match {
-      case Closed(n)   => for (np <- Shrink.shrink(n)) yield GreaterRay(Closed(np))
-      case Open(n)     => for (np <- Shrink.shrink(n)) yield GreaterRay(Open(np))
-      case Unbounded() => Stream.empty
+      case Closed(n)   => for (np <- Shrink.shrink(n).to(LazyList)) yield GreaterRay(Closed(np))
+      case Open(n)     => for (np <- Shrink.shrink(n).to(LazyList)) yield GreaterRay(Open(np))
+      case Unbounded() => LazyList.empty
     }
   }
 
-  implicit def shrinkLesserRay[T : Shrink](implicit conv: T => Ordered[T]): Shrink[LesserRay[T]] = Shrink { ray =>
+  implicit def shrinkLesserRay[T : Shrink](implicit conv: T => Ordered[T]): Shrink[LesserRay[T]] = Shrink.withLazyList { ray =>
     ray.bound match {
-      case Closed(n)   => for (np <- Shrink.shrink(n)) yield LesserRay(Closed(np))
-      case Open(n)     => for (np <- Shrink.shrink(n)) yield LesserRay(Open(np))
-      case Unbounded() => Stream.empty
+      case Closed(n)   => for (np <- Shrink.shrink(n).to(LazyList)) yield LesserRay(Closed(np))
+      case Open(n)     => for (np <- Shrink.shrink(n).to(LazyList)) yield LesserRay(Open(np))
+      case Unbounded() => LazyList.empty
     }
   }
 
