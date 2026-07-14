@@ -110,9 +110,40 @@ class IntervalSetSpec
     }
   }
 
+  property("the complement covers exactly the points not covered") {
+    forAll { (set: IntervalSet[Int], point: Int) =>
+      set.complement.containsPoint(point) should be(!set.containsPoint(point))
+    }
+  }
+
+  property("the complement is an involution") {
+    forAll { (set: IntervalSet[Int]) =>
+      set.complement.complement should equal(set)
+    }
+  }
+
+  property("the complement of the empty set is the full set") {
+    IntervalSet.empty[Int].complement should equal(IntervalSet(Interval.all[Int]))
+    IntervalSet(Interval.all[Int]).complement should equal(IntervalSet.empty[Int])
+  }
+
+  property("a set unioned with its gaps spans without holes") {
+    forAll { (set: IntervalSet[Int]) =>
+      whenever(set.nonEmpty) {
+        (set ++ set.gaps) should equal(IntervalSet(set.spanOption.get))
+      }
+    }
+  }
+
+  property("gaps are disjoint from the set") {
+    forAll { (set: IntervalSet[Int]) =>
+      set.gaps.intersect(set) should equal(IntervalSet.empty[Int])
+    }
+  }
+
   property("The span of an interval set  all intervals in the interval set.") {
     forAll { (set: IntervalSet[Int]) =>
-      val span = set.span
+      val span = set.spanOption
       forAll { (i: Interval[Int]) =>
         if (set.encloses(i)) span.get.encloses(i) should be(true)
       }

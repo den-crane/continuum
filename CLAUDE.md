@@ -96,7 +96,8 @@ to test both, `sbt "++3.3.7" test` to target Scala 3 only.
 The library has been updated to use the Scala 2.13 collections architecture:
 
 - `IntervalSet` extends `scala.collection.immutable.Iterable` (not `Set`); geometric operations
-  are `incl`/`excl` (`+`/`-`), `union` (`++`), `difference` (`--`), and `intersect`
+  are `incl`/`excl` (`+`/`-`), `union` (`++`), `difference` (`--`), `intersect`, `gaps`,
+  `complement`, and `spanOption` (named to avoid clashing with `Iterable.span(predicate)`)
 - Element-wise operations go through the `intervals` view (`SortedSet[Interval[T]]`)
 - Tests use `AnyPropSpec` and `ScalaCheckPropertyChecks` from ScalaTest 3.2+
 

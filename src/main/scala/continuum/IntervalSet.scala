@@ -156,13 +156,35 @@ final class IntervalSet[T] private (private val tree: TreeSet[Interval[T]])(impl
 
   /**
    * Returns the minimum spanning interval of the intervals in this set, if the set is non-empty.
+   * Named `spanOption` to avoid clashing with `Iterable.span(predicate)`.
    */
-  def span: Option[Interval[T]] = if (tree.nonEmpty) Some(tree.head span tree.last) else None
+  def spanOption: Option[Interval[T]] = if (tree.nonEmpty) Some(tree.head span tree.last) else None
 
   /**
-   * Returns the interval set covering exactly the points not covered by this set.
+   * Returns the bounded gaps between consecutive intervals of this set.
    */
-  def complement: IntervalSet[T] = IntervalSet(Interval.all[T]) -- this
+  def gaps: IntervalSet[T] = new IntervalSet(TreeSet.from(gapIntervals))
+
+  /**
+   * Returns the interval set covering exactly the points not covered by this set: the gaps plus
+   * the unbounded pieces on either side. Built in a single pass over the sorted members.
+   */
+  def complement: IntervalSet[T] =
+    if (tree.isEmpty) IntervalSet(Interval.all[T])
+    else {
+      val buf = List.newBuilder[Interval[T]]
+      if (tree.head.lower != Cut.BelowAll) buf += Interval(Cut.BelowAll, tree.head.lower)
+      buf ++= gapIntervals
+      if (tree.last.upper != Cut.AboveAll) buf += Interval(tree.last.upper, Cut.AboveAll)
+      new IntervalSet(TreeSet.from(buf.result()))
+    }
+
+  /**
+   * The gap between each pair of consecutive members. Valid intervals because members are
+   * pairwise disjoint and non-tangent, and safe to insert directly for the same reason.
+   */
+  private def gapIntervals: Iterator[Interval[T]] =
+    iterator.sliding(2).withPartial(false).map(pair => Interval(pair(0).upper, pair(1).lower))
 
   override def equals(other: Any): Boolean = other match {
     case that: IntervalSet[_] => tree == that.tree
