@@ -105,11 +105,11 @@ final case class Interval[T: Ordering](lower: GreaterRay[T], upper: LesserRay[T]
    * Returns the difference between this interval and the other. The set may contain 0, 1, or 2
    * resulting intervals.
    */
-  def difference(other: Interval[T]): Set[Interval[T]] =
-    intersect(other).fold(Set(this)) { intersection =>
+  def difference(other: Interval[T]): IntervalSet[T] =
+    intersect(other).fold(IntervalSet(this)) { intersection =>
       val left = intersection.lesser.flatMap(intersect)
       val right = intersection.greater.flatMap(intersect)
-      Set(left, right).flatten
+      IntervalSet((left.toList ::: right.toList): _*)
     }
 
   /**
