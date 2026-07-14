@@ -72,20 +72,20 @@ res11: Option[continuum.Interval[String]] = Some((aardvark, deer])
 scala> Interval.lessThan(0) span Interval.open(20, 25)
 res12: continuum.Interval[Int] = (-∞, 25)
 
-// Intervals over discrete domains may be normalized
+// Intervals over discrete domains may be normalized to closed-open form
 scala> Interval.openClosed(10, 20).normalize
-res13: (Option[Int], Option[Int]) = (Some(11),Some(21))
+res13: (continuum.NormalizedBound[Int], continuum.NormalizedBound[Int]) = (Value(11),Value(21))
 
 scala> Interval.greaterThan(12).normalize
-res14: (Option[Int], Option[Int]) = (Some(21),None)
+res14: (continuum.NormalizedBound[Int], continuum.NormalizedBound[Int]) = (Value(13),Unbounded)
 
 scala> Interval.point(25).normalize
-res15: (Option[Int], Option[Int]) = (Some(25),Some(26))
+res15: (continuum.NormalizedBound[Int], continuum.NormalizedBound[Int]) = (Value(25),Value(26))
 ```
 
 ## IntervalSet
 
-An interval set is a set which contains 0 or more intervals. Connected intervals are automatically coalesced, so at all times an interval set contains only the minimum number of intervals necessary. Interval sets are immutable and persistent, and support the full Scala Set API.
+An interval set is a set which contains 0 or more intervals. Connected intervals are automatically coalesced, so at all times an interval set contains only the minimum number of intervals necessary. Interval sets are immutable and persistent. An interval set is deliberately not a Scala `Set[Interval[T]]` — its operations are geometric (adding coalesces, removing clips) — but it is an `Iterable` of its members in sorted order, and the member set is available via `.intervals`.
 
 ```scala
 
@@ -102,7 +102,7 @@ res1: continuum.IntervalSet[Int] = IntervalSet((10, 25])
 scala> IntervalSet(Interval.open(10, 20)) + Interval.closed(25, 30)
 res2: continuum.IntervalSet[Int] = IntervalSet((10, 20), [25, 30])
 
-scala> IntervalSet(1 to 10) intersectAll IntervalSet(5 to 15)
+scala> IntervalSet(1 to 10) intersect IntervalSet(5 to 15)
 res3: continuum.IntervalSet[Int] = IntervalSet([5, 10])
 
 scala> IntervalSet(1 to 10).complement

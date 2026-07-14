@@ -141,14 +141,14 @@ class IntervalSpec
 
   property("interval difference zero") {
     forAll { (interval: Interval[Int]) =>
-      interval difference interval should equal (Set())
+      interval difference interval should equal (IntervalSet.empty[Int])
     }
   }
 
   property("interval difference identity") {
     forAll { (interval: Interval[Int]) =>
       val full = Interval.full[Int]
-      interval difference full should equal (Set())
+      interval difference full should equal (IntervalSet.empty[Int])
     }
   }
 

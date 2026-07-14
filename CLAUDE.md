@@ -52,7 +52,8 @@ The library is built on a hierarchy of abstractions from low-level to high-level
 3. **IntervalSet** (`IntervalSet.scala`) - Set level
    - Immutable, persistent set of intervals
    - Automatically coalesces overlapping/tangent intervals
-   - Implements full Scala `SortedSet` API
+   - Deliberately not a Scala `Set` (geometric add/remove cannot satisfy Set laws); it is an
+     immutable `Iterable` of sorted members, with the member `SortedSet` exposed via `intervals`
    - Backed by an immutable `TreeSet` for efficient operations
 
 ### Discrete Domain Support
@@ -86,11 +87,10 @@ Project uses Scala 2.13.18 (migrated from 2.11.8).
 
 The library has been updated to use the Scala 2.13 collections architecture:
 
-- `IntervalSet` extends `AbstractSet`, `SortedSet`, `SortedSetOps`, and `StrictOptimizedSortedSetOps`
-- Uses `incl`/`excl` methods instead of `+`/`-` for adding/removing elements
-- Implements `fromSpecific`, `newSpecificBuilder`, and `iteratorFrom` for the new collections framework
-- Builder pattern uses `addOne`, `clear`, and `result` methods
-- Tests updated to use `AnyPropSpec` and `ScalaCheckPropertyChecks` from ScalaTest 3.2+
+- `IntervalSet` extends `scala.collection.immutable.Iterable` (not `Set`); geometric operations
+  are `incl`/`excl` (`+`/`-`), `union` (`++`), `difference` (`--`), and `intersect`
+- Element-wise operations go through the `intervals` view (`SortedSet[Interval[T]]`)
+- Tests use `AnyPropSpec` and `ScalaCheckPropertyChecks` from ScalaTest 3.2+
 
 ### Dependencies
 
