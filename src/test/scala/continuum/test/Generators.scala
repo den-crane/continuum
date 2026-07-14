@@ -7,14 +7,17 @@ import continuum.{Cut, Interval, IntervalSet}
 
 trait Generators {
 
-  implicit def arbCut[T : Arbitrary]: Arbitrary[Cut[T]] =
-    Arbitrary(Gen.frequency(
-      4 -> arbitrary[T].map(Cut.BelowValue(_): Cut[T]),
-      4 -> arbitrary[T].map(Cut.AboveValue(_): Cut[T]),
-      1 -> Gen.const(Cut.BelowAll: Cut[T]),
-      1 -> Gen.const(Cut.AboveAll: Cut[T])))
+  implicit def arbCut[T: Arbitrary]: Arbitrary[Cut[T]] =
+    Arbitrary(
+      Gen.frequency(
+        4 -> arbitrary[T].map(Cut.BelowValue(_): Cut[T]),
+        4 -> arbitrary[T].map(Cut.AboveValue(_): Cut[T]),
+        1 -> Gen.const(Cut.BelowAll: Cut[T]),
+        1 -> Gen.const(Cut.AboveAll: Cut[T])
+      )
+    )
 
-  implicit def arbInterval[T : Arbitrary : Ordering]: Arbitrary[Interval[T]] = Arbitrary {
+  implicit def arbInterval[T: Arbitrary: Ordering]: Arbitrary[Interval[T]] = Arbitrary {
     for {
       a <- arbitrary[Cut[T]]
       b <- arbitrary[Cut[T]] if Interval.validate(a, b) || Interval.validate(b, a)
@@ -28,42 +31,54 @@ trait Generators {
    */
   implicit def arbIntInterval: Arbitrary[Interval[Int]] = Arbitrary {
     def genUpperAbove(lower: Cut[Int]): Gen[Cut[Int]] = lower match {
-      case Cut.BelowAll => Gen.frequency(
-        4 -> arbitrary[Int].map(Cut.BelowValue(_): Cut[Int]),
-        4 -> arbitrary[Int].map(Cut.AboveValue(_): Cut[Int]),
-        1 -> Gen.const(Cut.AboveAll: Cut[Int]))
-      case Cut.BelowValue(l) => Gen.frequency(
-        4 -> Gen.choose(l, Int.MaxValue).map(Cut.AboveValue(_): Cut[Int]),
-        4 -> (if (l == Int.MaxValue) Gen.const(Cut.AboveAll: Cut[Int])
-              else Gen.choose(l + 1, Int.MaxValue).map(Cut.BelowValue(_): Cut[Int])),
-        1 -> Gen.const(Cut.AboveAll: Cut[Int]))
-      case Cut.AboveValue(l) => Gen.frequency(
-        8 -> (if (l == Int.MaxValue) Gen.const(Cut.AboveAll: Cut[Int])
-              else Gen.choose(l + 1, Int.MaxValue).flatMap(u =>
-                Gen.oneOf(Cut.BelowValue(u): Cut[Int], Cut.AboveValue(u): Cut[Int]))),
-        1 -> Gen.const(Cut.AboveAll: Cut[Int]))
+      case Cut.BelowAll =>
+        Gen.frequency(
+          4 -> arbitrary[Int].map(Cut.BelowValue(_): Cut[Int]),
+          4 -> arbitrary[Int].map(Cut.AboveValue(_): Cut[Int]),
+          1 -> Gen.const(Cut.AboveAll: Cut[Int])
+        )
+      case Cut.BelowValue(l) =>
+        Gen.frequency(
+          4 -> Gen.choose(l, Int.MaxValue).map(Cut.AboveValue(_): Cut[Int]),
+          4 -> (if (l == Int.MaxValue) Gen.const(Cut.AboveAll: Cut[Int])
+                else Gen.choose(l + 1, Int.MaxValue).map(Cut.BelowValue(_): Cut[Int])),
+          1 -> Gen.const(Cut.AboveAll: Cut[Int])
+        )
+      case Cut.AboveValue(l) =>
+        Gen.frequency(
+          8 -> (if (l == Int.MaxValue) Gen.const(Cut.AboveAll: Cut[Int])
+                else
+                  Gen
+                    .choose(l + 1, Int.MaxValue)
+                    .flatMap(u =>
+                      Gen.oneOf(Cut.BelowValue(u): Cut[Int], Cut.AboveValue(u): Cut[Int])
+                    )),
+          1 -> Gen.const(Cut.AboveAll: Cut[Int])
+        )
       case Cut.AboveAll => Gen.const(Cut.AboveAll)
     }
     for {
       lower <- Gen.frequency(
         4 -> arbitrary[Int].map(Cut.BelowValue(_): Cut[Int]),
         4 -> arbitrary[Int].map(Cut.AboveValue(_): Cut[Int]),
-        1 -> Gen.const(Cut.BelowAll: Cut[Int]))
+        1 -> Gen.const(Cut.BelowAll: Cut[Int])
+      )
       upper <- genUpperAbove(lower)
     } yield Interval(lower, upper)
   }
 
-  implicit def shrinkInterval[T : Shrink : Ordering]: Shrink[Interval[T]] = Shrink.withLazyList { interval =>
-    def shrinkCut(cut: Cut[T]): LazyList[Cut[T]] = cut match {
-      case Cut.BelowValue(v) => Shrink.shrink(v).to(LazyList).map(Cut.BelowValue(_))
-      case Cut.AboveValue(v) => Shrink.shrink(v).to(LazyList).map(Cut.AboveValue(_))
-      case _                 => LazyList.empty
-    }
-    for {
-      l <- shrinkCut(interval.lower)
-      u <- shrinkCut(interval.upper)
-      if Interval.validate(l, u)
-    } yield Interval(l, u)
+  implicit def shrinkInterval[T: Shrink: Ordering]: Shrink[Interval[T]] = Shrink.withLazyList {
+    interval =>
+      def shrinkCut(cut: Cut[T]): LazyList[Cut[T]] = cut match {
+        case Cut.BelowValue(v) => Shrink.shrink(v).to(LazyList).map(Cut.BelowValue(_))
+        case Cut.AboveValue(v) => Shrink.shrink(v).to(LazyList).map(Cut.AboveValue(_))
+        case _                 => LazyList.empty
+      }
+      for {
+        l <- shrinkCut(interval.lower)
+        u <- shrinkCut(interval.upper)
+        if Interval.validate(l, u)
+      } yield Interval(l, u)
   }
 
   implicit def arbRange: Arbitrary[Range] = Arbitrary {
@@ -124,15 +139,20 @@ trait Generators {
       1 -> closedUnbounded,
       1 -> openUnbounded,
       1 -> unboundedClosed,
-      1 -> unboundedOpen)
+      1 -> unboundedOpen
+    )
   }
 
-  implicit def arbIntervalSet[T : Arbitrary : Ordering]: Arbitrary[IntervalSet[T]] =
-    Arbitrary(for (intervals <- arbitrary[Array[Interval[T]]]) yield IntervalSet(intervals.toSeq:_*))
+  implicit def arbIntervalSet[T: Arbitrary: Ordering]: Arbitrary[IntervalSet[T]] =
+    Arbitrary(
+      for (intervals <- arbitrary[Array[Interval[T]]]) yield IntervalSet(intervals.toSeq: _*)
+    )
 
   /**
    * Generates arbitrary interval sets of Ints using the more efficient Int interval generator.
    */
   implicit def arbIntIntervalSet: Arbitrary[IntervalSet[Int]] =
-    Arbitrary(for (intervals <- arbitrary[Array[Interval[Int]]]) yield IntervalSet(intervals.toSeq:_*))
+    Arbitrary(
+      for (intervals <- arbitrary[Array[Interval[Int]]]) yield IntervalSet(intervals.toSeq: _*)
+    )
 }

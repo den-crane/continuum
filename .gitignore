@@ -9,10 +9,9 @@ target/
 # BSP (Build Server Protocol)
 .bsp/
 
-# SBT - ignore everything in project/ except build.properties
-project/
-project/
-project/
+# SBT - ignore generated project dirs but track build.properties and *.sbt
+project/target/
+project/project/
 .metals/
 .bloop/
 .sbt-hydra-history

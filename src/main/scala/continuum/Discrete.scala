@@ -4,6 +4,7 @@ package continuum
  * A trait for describing discrete domains.
  */
 trait Discrete[T] {
+
   /**
    * Returns the next value in the domain, or `None` if the value is the domain's maximum.
    */
@@ -16,12 +17,15 @@ trait Discrete[T] {
 }
 
 object Discrete {
+
   /**
    * An implementation of the Discrete trait for longs.
    */
   implicit object DiscreteLong extends Discrete[Long] {
-    override def next(long: Long): Option[Long] = if (long == Long.MaxValue) None else Some(long + 1)
-    override def prev(long: Long): Option[Long] = if (long == Long.MinValue) None else Some(long - 1)
+    override def next(long: Long): Option[Long] =
+      if (long == Long.MaxValue) None else Some(long + 1)
+    override def prev(long: Long): Option[Long] =
+      if (long == Long.MinValue) None else Some(long - 1)
   }
 
   /**

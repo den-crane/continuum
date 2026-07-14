@@ -19,8 +19,8 @@ import continuum.Cut.{AboveAll, AboveValue, BelowAll, BelowValue}
  *           interval operates on.
  */
 final case class Interval[T: Ordering](lower: Cut[T], upper: Cut[T])
-  extends (T => Boolean)
-  with Ordered[Interval[T]] {
+    extends (T => Boolean)
+    with Ordered[Interval[T]] {
 
   require(Interval.validate(lower, upper), "Invalid interval cuts: " + lower + ", " + upper + ".")
 
@@ -139,13 +139,17 @@ final case class Interval[T: Ordering](lower: Cut[T], upper: Cut[T])
   def normalize(implicit discrete: Discrete[T]): (NormalizedBound[T], NormalizedBound[T]) = {
     val l = lower match {
       case BelowValue(cut) => NormalizedBound.Value(cut)
-      case AboveValue(cut) => discrete.next(cut).fold[NormalizedBound[T]](NormalizedBound.Empty)(NormalizedBound.Value(_))
-      case _               => NormalizedBound.Unbounded
+      case AboveValue(cut) =>
+        discrete.next(cut).fold[NormalizedBound[T]](NormalizedBound.Empty)(NormalizedBound.Value(_))
+      case _ => NormalizedBound.Unbounded
     }
     val u = upper match {
       case BelowValue(cut) => NormalizedBound.Value(cut)
-      case AboveValue(cut) => discrete.next(cut).fold[NormalizedBound[T]](NormalizedBound.Unbounded)(NormalizedBound.Value(_))
-      case _               => NormalizedBound.Unbounded
+      case AboveValue(cut) =>
+        discrete
+          .next(cut)
+          .fold[NormalizedBound[T]](NormalizedBound.Unbounded)(NormalizedBound.Value(_))
+      case _ => NormalizedBound.Unbounded
     }
     (l, u)
   }
@@ -160,7 +164,7 @@ final case class Interval[T: Ordering](lower: Cut[T], upper: Cut[T])
    */
   def point: Option[T] = (lower, upper) match {
     case (BelowValue(l), AboveValue(u)) if l == u => Some(l)
-    case _ => None
+    case _                                        => None
   }
 
   /**
@@ -180,7 +184,10 @@ final case class Interval[T: Ordering](lower: Cut[T], upper: Cut[T])
   def toRange(implicit num: Numeric[T]): Range = {
     def toIntExact(value: T): Int = {
       val i = num.toInt(value)
-      require(num.equiv(num.fromInt(i), value), "Bound " + value + " cannot be exactly represented as an Int.")
+      require(
+        num.equiv(num.fromInt(i), value),
+        "Bound " + value + " cannot be exactly represented as an Int."
+      )
       i
     }
     val start: Int = lower match {
@@ -262,7 +269,7 @@ object Interval {
 
   implicit def fromRange(range: Range): Interval[Int] = {
     require(range.step == 1, "Range must be continuous.")
-    if(range.isInclusive) closed(range.start, range.end)
+    if (range.isInclusive) closed(range.start, range.end)
     else closedOpen(range.start, range.end)
   }
 

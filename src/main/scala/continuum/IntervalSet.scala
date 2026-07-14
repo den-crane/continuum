@@ -28,10 +28,11 @@ object IntervalSet {
  * lookup therefore needs only the sorted-set API (`maxBefore` plus `iteratorFrom`) and runs in
  * O(log n + k).
  */
-final class IntervalSet[T] private (private val tree: TreeSet[Interval[T]])(implicit ord: Ordering[T])
-  extends (T => Boolean)
-  with scala.collection.immutable.Iterable[Interval[T]]
-  with Serializable {
+final class IntervalSet[T] private (private val tree: TreeSet[Interval[T]])(implicit
+    ord: Ordering[T]
+) extends (T => Boolean)
+    with scala.collection.immutable.Iterable[Interval[T]]
+    with Serializable {
 
   override def iterator: Iterator[Interval[T]] = tree.iterator
   override def size: Int = tree.size
@@ -131,7 +132,9 @@ final class IntervalSet[T] private (private val tree: TreeSet[Interval[T]])(impl
    * Returns the result of the intervals in this set intersected with each of the given intervals.
    */
   def intersect(that: IterableOnce[Interval[T]]): IntervalSet[T] =
-    that.iterator.foldLeft(IntervalSet.empty[T])((acc, interval) => acc union this.intersect(interval))
+    that.iterator.foldLeft(IntervalSet.empty[T])((acc, interval) =>
+      acc union this.intersect(interval)
+    )
 
   /**
    * Returns this set with all of the given intervals added.
@@ -163,7 +166,7 @@ final class IntervalSet[T] private (private val tree: TreeSet[Interval[T]])(impl
 
   override def equals(other: Any): Boolean = other match {
     case that: IntervalSet[_] => tree == that.tree
-    case _ => false
+    case _                    => false
   }
 
   override def hashCode(): Int = tree.hashCode()

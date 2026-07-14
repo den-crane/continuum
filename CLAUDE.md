@@ -29,6 +29,9 @@ sbt console
 
 # Package as JAR
 sbt package
+
+# Format sources (scalafmt; CI-style check: scalafmtCheckAll)
+sbt scalafmtAll scalafmtSbt
 ```
 
 ## Core Architecture
