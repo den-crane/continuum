@@ -160,7 +160,7 @@ class IntervalSet[T](tree: RB.Tree[Interval[T], Unit])(implicit conv: T=>Ordered
   /**
    * Tests if the provided interval intersects with any of the intervals in this set.
    */
-  def intersects(interval: Interval[T]): Boolean = rangeFrom(interval).head intersects interval
+  def intersects(interval: Interval[T]): Boolean = intersecting(interval).nonEmpty
 
   /**
    * Returns the the result of the intervals in this set intersected with the given interval.

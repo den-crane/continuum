@@ -56,6 +56,28 @@ class IntervalSetSpec
     }
   }
 
+  property("An interval set intersects an interval iff any of its intervals intersect it") {
+    forAll { (set: IntervalSet[Int], interval: Interval[Int]) =>
+      set.intersects(interval) should be (set.exists(_ intersects interval))
+    }
+  }
+
+  property("An interval set intersects an interval it encloses, regardless of ordering") {
+    val set = IntervalSet(Interval.closed(0, 10))
+    set.intersects(Interval.closed(5, 6)) should be (true)
+    set.intersects(Interval.closed(0, 10)) should be (true)
+    set.intersects(Interval.closed(-5, 0)) should be (true)
+    set.intersects(Interval.closed(10, 15)) should be (true)
+    set.intersects(Interval.closed(20, 30)) should be (false)
+    set.intersects(Interval.closed(-30, -20)) should be (false)
+  }
+
+  property("An empty interval set intersects nothing") {
+    forAll { (interval: Interval[Int]) =>
+      IntervalSet.empty[Int].intersects(interval) should be (false)
+    }
+  }
+
   property("The span of an interval set  all intervals in the interval set.") {
     forAll { (set: IntervalSet[Int]) =>
       val span = set.span
