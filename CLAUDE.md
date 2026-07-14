@@ -15,8 +15,11 @@ Continuum is a Scala library for working with intervals over continuous, total-o
 # Compile the project
 sbt compile
 
-# Run tests
+# Run tests (current Scala version)
 sbt test
+
+# Run tests for all cross-build Scala versions (2.13 and 3.3)
+sbt +test
 
 # Run specific test
 sbt "testOnly continuum.IntervalSpec"
@@ -81,7 +84,9 @@ Tests use ScalaTest with property-based testing (ScalaCheck):
 
 ## Scala Version
 
-Project uses Scala 2.13.18 (migrated from 2.11.8).
+Project cross-builds for Scala 2.13.18 and Scala 3.3.7 LTS (migrated from 2.11.8). The same
+sources compile for both versions with no version-specific source directories. Use `sbt +test`
+to test both, `sbt "++3.3.7" test` to target Scala 3 only.
 
 ### Scala 2.13 Collections API
 

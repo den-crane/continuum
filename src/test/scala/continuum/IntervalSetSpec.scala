@@ -39,7 +39,7 @@ class IntervalSetSpec
   property("An interval set intersected with an interval should contain only intervals in common.") {
     forAll { (set: IntervalSet[Int], interval: Interval[Int]) =>
       val intersection = set intersect interval
-      forAll { i: Interval[Int] =>
+      forAll { (i: Interval[Int]) =>
         if (set.encloses(i) && interval.encloses(i)) intersection.encloses(i) should be (true)
         else intersection.encloses(i) should be (false)
       }
@@ -49,7 +49,7 @@ class IntervalSetSpec
   property("An interval set intersected with an interval set should contain only intervals in common.") {
     forAll { (a: IntervalSet[Int], b: IntervalSet[Int]) =>
       val intersection = a intersect b
-      forAll { i: Interval[Int] =>
+      forAll { (i: Interval[Int]) =>
         if (a.encloses(i) && b.encloses(i)) intersection.encloses(i) should be (true)
         else intersection.encloses(i) should be (false)
       }
@@ -109,7 +109,7 @@ class IntervalSetSpec
   property("The span of an interval set  all intervals in the interval set.") {
     forAll { (set: IntervalSet[Int]) =>
       val span = set.span
-      forAll { i: Interval[Int] =>
+      forAll { (i: Interval[Int]) =>
         if (set.encloses(i)) span.get.encloses(i) should be (true)
       }
     }

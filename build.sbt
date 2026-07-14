@@ -6,6 +6,8 @@ version := "0.4-SNAPSHOT"
 
 scalaVersion := "2.13.18"
 
+crossScalaVersions := Seq("2.13.18", "3.3.7")
+
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 
 libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.19.0" % "test"
