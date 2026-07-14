@@ -96,6 +96,6 @@ The library has been updated to use the Scala 2.13 collections architecture:
 
 ### Dependencies
 
-- ScalaTest 3.2.19
-- ScalaCheck 1.18.1
-- ScalaTestPlus ScalaCheck integration 3.2.19.0
+- ScalaTest 3.2.20
+- ScalaCheck 1.19.0
+- ScalaTestPlus ScalaCheck integration 3.2.20.0

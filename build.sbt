@@ -8,8 +8,8 @@ scalaVersion := "2.13.18"
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 
-libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.18.1" % "test"
+libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.19.0" % "test"
 
-libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % "test"
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.20" % "test"
 
-libraryDependencies += "org.scalatestplus" %% "scalacheck-1-18" % "3.2.19.0" % "test"
+libraryDependencies += "org.scalatestplus" %% "scalacheck-1-19" % "3.2.20.0" % "test"
