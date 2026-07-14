@@ -20,7 +20,7 @@ import continuum.Interval
 scala> Interval.closedOpen(10, 20)
 res0: continuum.Interval[Int] = [10, 20)
 
-// Intervals can be made from any Ordered element
+// Intervals can be made from any element with an Ordering
 scala> Interval.closed("bar", "baz")
 res1: continuum.Interval[String] = [bar, baz]
 

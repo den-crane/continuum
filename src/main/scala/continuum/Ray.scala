@@ -1,19 +1,21 @@
 package continuum
 
+import scala.math.Ordering.Implicits._
+
 import continuum.bound.{Closed, Open, Unbounded}
 
 /**
  * A bounded subset of a continuous, infinite, and total-ordered values. A ray is composed of a
  * single bound and a direction. The ray may either point in the `Lesser` direction, towards smaller
  * values, or in the `Greater` direction, towards larger values. Thus, if the ray points in the
- * `Greater` direction, it is bounded below, whereas a ray pointing in the `Greater` direction is
+ * `Greater` direction, it is bounded below, whereas a ray pointing in the `Lesser` direction is
  * bounded above. A ray's bound can potentially be unbounded, in which case the ray is equivalent to
  * a line.
  *
  * @tparam T type of values contained in the continuous, infinite, total-ordered set which the
  *           ray operates on.
  */
-sealed abstract class Ray[T](implicit conv: T => Ordered[T]) extends (T => Boolean) {
+sealed abstract class Ray[T] extends (T => Boolean) {
 
   def bound: Bound[T]
 
@@ -54,7 +56,7 @@ sealed abstract class Ray[T](implicit conv: T => Ordered[T]) extends (T => Boole
   def isSameDirection(other: Ray[T]): Boolean
 }
 
-case class GreaterRay[T](bound: Bound[T])(implicit conv: T => Ordered[T]) extends Ray[T] with Ordered[GreaterRay[T]] {
+case class GreaterRay[T: Ordering](bound: Bound[T]) extends Ray[T] with Ordered[GreaterRay[T]] {
 
   override def apply(point: T): Boolean = bound match {
     case Closed(value) => point >= value
@@ -114,7 +116,7 @@ case class GreaterRay[T](bound: Bound[T])(implicit conv: T => Ordered[T]) extend
   }
 }
 
-case class LesserRay[T](bound: Bound[T])(implicit conv: T => Ordered[T]) extends Ray[T] with Ordered[LesserRay[T]] {
+case class LesserRay[T: Ordering](bound: Bound[T]) extends Ray[T] with Ordered[LesserRay[T]] {
 
   override def apply(point: T): Boolean = bound match {
     case Closed(value) => point <= value

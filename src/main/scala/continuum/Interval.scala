@@ -15,7 +15,7 @@ import continuum.bound.{Closed, Open, Unbounded}
  * @tparam T type of values contained in the continuous, infinite, total-ordered set which the
  *           interval operates on.
  */
-final case class Interval[T](lower: GreaterRay[T], upper: LesserRay[T])(implicit conv: T=>Ordered[T])
+final case class Interval[T: Ordering](lower: GreaterRay[T], upper: LesserRay[T])
   extends (T => Boolean)
   with Ordered[Interval[T]] {
 
@@ -165,7 +165,7 @@ final case class Interval[T](lower: GreaterRay[T], upper: LesserRay[T])(implicit
    * Transform the bounds of this interval to create a new Interval. The resulting interval must be
    * valid, i.e., the transformation must keep the relative order of the bounds.
    */
-  def map[U](f: T => U)(implicit conv: U => Ordered[U]): Interval[U] =
+  def map[U: Ordering](f: T => U): Interval[U] =
     Interval(GreaterRay(lower.bound.map(f)), LesserRay(upper.bound.map(f)))
 
   /**
@@ -212,45 +212,45 @@ final case class Interval[T](lower: GreaterRay[T], upper: LesserRay[T])(implicit
 
 object Interval {
 
-  private[continuum] def validate[T](lower: Ray[T], upper: Ray[T])(implicit conv: T=>Ordered[T]): Boolean =
+  private[continuum] def validate[T](lower: Ray[T], upper: Ray[T]): Boolean =
     lower intersects upper
 
-  def open[T](lower: T, upper: T)(implicit conv: T=>Ordered[T]): Interval[T] =
+  def open[T: Ordering](lower: T, upper: T): Interval[T] =
     Interval(GreaterRay(Open(lower)), LesserRay(Open(upper)))
 
-  def closed[T](lower: T, upper: T)(implicit conv: T=>Ordered[T]): Interval[T] =
+  def closed[T: Ordering](lower: T, upper: T): Interval[T] =
     Interval(GreaterRay(Closed(lower)), LesserRay(Closed(upper)))
 
-  def openClosed[T](lower: T, upper: T)(implicit conv: T=>Ordered[T]): Interval[T] =
+  def openClosed[T: Ordering](lower: T, upper: T): Interval[T] =
     Interval(GreaterRay(Open(lower)), LesserRay(Closed(upper)))
 
-  def closedOpen[T](lower: T, upper: T)(implicit conv: T=>Ordered[T]): Interval[T] =
+  def closedOpen[T: Ordering](lower: T, upper: T): Interval[T] =
     Interval(GreaterRay(Closed(lower)), LesserRay(Open(upper)))
 
-  def greaterThan[T](cut: T)(implicit conv: T=>Ordered[T]): Interval[T] =
+  def greaterThan[T: Ordering](cut: T): Interval[T] =
     Interval(GreaterRay(Open(cut)), LesserRay(Unbounded()))
 
-  def atLeast[T](cut: T)(implicit conv: T=>Ordered[T]): Interval[T] =
+  def atLeast[T: Ordering](cut: T): Interval[T] =
     Interval(GreaterRay(Closed(cut)), LesserRay(Unbounded()))
 
-  def lessThan[T](cut: T)(implicit conv: T=>Ordered[T]): Interval[T] =
+  def lessThan[T: Ordering](cut: T): Interval[T] =
     Interval(GreaterRay(Unbounded()), LesserRay(Open(cut)))
 
-  def atMost[T](cut: T)(implicit conv: T=>Ordered[T]): Interval[T] =
+  def atMost[T: Ordering](cut: T): Interval[T] =
     Interval(GreaterRay(Unbounded()), LesserRay(Closed(cut)))
 
-  def full[T](implicit conv: T=>Ordered[T]): Interval[T] =
+  def full[T: Ordering]: Interval[T] =
     Interval(GreaterRay(Unbounded()), LesserRay(Unbounded()))
 
-  def all[T](implicit conv: T=>Ordered[T]): Interval[T] = full
+  def all[T: Ordering]: Interval[T] = full
 
-  def point[T](point: T)(implicit conv: T=>Ordered[T]): Interval[T] = closed(point, point)
+  def point[T: Ordering](point: T): Interval[T] = closed(point, point)
 
-  def apply[T](implicit conv: T=>Ordered[T]): Interval[T] = full
+  def apply[T: Ordering]: Interval[T] = full
 
-  def apply[T](point: T)(implicit conv: T=>Ordered[T]): Interval[T] = closed(point, point)
+  def apply[T: Ordering](point: T): Interval[T] = closed(point, point)
 
-  implicit def fromTuple[T](tuple: (T, T))(implicit conv: T=>Ordered[T]): Interval[T] =
+  implicit def fromTuple[T: Ordering](tuple: (T, T)): Interval[T] =
     closedOpen(tuple._1, tuple._2)
 
   implicit def fromRange(range: Range): Interval[Int] = {

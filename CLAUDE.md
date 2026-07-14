@@ -74,7 +74,7 @@ Tests use ScalaTest with property-based testing (ScalaCheck):
 
 ## Key Implementation Details
 
-- All types require an implicit `T => Ordered[T]` for comparison
+- All types require an implicit `Ordering[T]` for comparison (context bound style)
 - `IntervalSet` is placed in `scala.collection.immutable` package to extend `SortedSet`
 - The validation logic ensures intervals are never empty at construction time
 - Ray intersection/tangent logic is the foundation for interval operations

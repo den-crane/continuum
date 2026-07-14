@@ -6,12 +6,12 @@ import scala.collection.mutable
 import continuum.Interval
 
 object IntervalSet {
-  def empty[T](implicit conv: T=>Ordered[T]): IntervalSet[T] = new IntervalSet()
+  def empty[T: Ordering]: IntervalSet[T] = new IntervalSet()
 
-  def apply[T](intervals: Interval[T]*)(implicit conv: T=>Ordered[T]): IntervalSet[T] =
+  def apply[T: Ordering](intervals: Interval[T]*): IntervalSet[T] =
     intervals.foldLeft(empty[T])(_ + _)
 
-  def newBuilder[T](implicit conv: T=>Ordered[T]): mutable.Builder[Interval[T], IntervalSet[T]] =
+  def newBuilder[T: Ordering]: mutable.Builder[Interval[T], IntervalSet[T]] =
     new mutable.Builder[Interval[T], IntervalSet[T]] {
       private var set = empty[T]
       def addOne(elem: Interval[T]): this.type = {
@@ -24,7 +24,7 @@ object IntervalSet {
       def result(): IntervalSet[T] = set
     }
 
-  implicit def buildFrom[T](implicit conv: T=>Ordered[T]): collection.BuildFrom[IntervalSet[_], Interval[T], IntervalSet[T]] =
+  implicit def buildFrom[T: Ordering]: collection.BuildFrom[IntervalSet[_], Interval[T], IntervalSet[T]] =
     new collection.BuildFrom[IntervalSet[_], Interval[T], IntervalSet[T]] {
       def fromSpecific(from: IntervalSet[_])(it: IterableOnce[Interval[T]]): IntervalSet[T] =
         it.iterator.foldLeft(empty[T])(_ + _)
@@ -38,14 +38,14 @@ object IntervalSet {
  * coalesced, so at all times an interval set contains the minimum number of necessary intervals.
  * Interval sets are immutable and persistent.
  */
-class IntervalSet[T](tree: RB.Tree[Interval[T], Unit])(implicit conv: T=>Ordered[T])
+class IntervalSet[T: Ordering](tree: RB.Tree[Interval[T], Unit])
   extends AbstractSet[Interval[T]]
   with SortedSet[Interval[T]]
   with SortedSetOps[Interval[T], SortedSet, IntervalSet[T]]
   with StrictOptimizedSortedSetOps[Interval[T], SortedSet, IntervalSet[T]]
   with Serializable {
 
-  def this()(implicit conv: T=>Ordered[T]) = this(null)
+  def this()(implicit ord: Ordering[T]) = this(null)(ord)
 
   override def ordering: Ordering[Interval[T]] = Ordering.ordered
 
