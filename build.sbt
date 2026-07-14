@@ -2,7 +2,9 @@ organization := "danburkert"
 
 name := "continuum"
 
-version := "0.4-SNAPSHOT"
+version := "0.5.0"
+
+versionScheme := Some("early-semver")
 
 scalaVersion := "2.13.18"
 
