@@ -173,6 +173,35 @@ class IntervalSpec extends AnyPropSpec with ScalaCheckPropertyChecks with Matche
   }
 
   /**
+   * points
+   */
+
+  property("points enumerates exactly the values of toRange") {
+    forAll(genIntervalRange) { (interval: Interval[Int]) =>
+      whenever(interval.lower != Cut.BelowAll) {
+        interval.points.toList should equal(interval.toRange.toList)
+      }
+    }
+  }
+
+  property("points respects bound shapes and domain edges") {
+    Interval.closed(1, 3).points.toList should equal(List(1, 2, 3))
+    Interval.open(1, 3).points.toList should equal(List(2))
+    Interval.closedOpen(1, 3).points.toList should equal(List(1, 2))
+    Interval.point(5).points.toList should equal(List(5))
+    Interval.atLeast(Int.MaxValue).points.toList should equal(List(Int.MaxValue))
+    Interval.greaterThan(Int.MaxValue).points.toList should equal(Nil)
+  }
+
+  property("points is lazy for intervals unbounded above") {
+    Interval.atLeast(0).points.take(3).toList should equal(List(0, 1, 2))
+  }
+
+  property("points rejects intervals unbounded below") {
+    an[IllegalArgumentException] should be thrownBy Interval.lessThan(5).points
+  }
+
+  /**
    * toRange
    */
 

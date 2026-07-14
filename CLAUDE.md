@@ -67,7 +67,9 @@ The library is built on a hierarchy of abstractions from low-level to high-level
 The `Discrete[T]` trait (`Discrete.scala`) enables operations on discrete domains:
 
 - Provides `next()`/`prev()` functions to step through the domain
-- Used by `Interval.normalize()` to convert open/closed bounds
+- Used by `Interval.normalize()` to convert open/closed bounds and by
+  `Interval.points`/`IntervalSet.points` to lazily enumerate covered values (ascending; throws
+  for intervals unbounded below)
 - Implementations provided for `Int`, `Long`, and `Array[Byte]` (unsigned lexicographic; matching non-implicit `Discrete.ByteArrayOrdering` supplies the `Ordering`)
 - `Interval.normalize` returns a pair of `NormalizedBound` (`Value`/`Unbounded`/`Empty`), distinguishing empty-in-domain from unbounded at the domain edges
 

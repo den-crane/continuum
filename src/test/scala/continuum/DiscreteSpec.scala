@@ -41,6 +41,14 @@ class DiscreteSpec extends AnyPropSpec with Matchers {
     ord.equiv(Array[Byte](1, 2), Array[Byte](1, 2)) should be(true)
   }
 
+  property("byte array intervals enumerate lexicographic successors") {
+    implicit val ord: Ordering[Array[Byte]] = Discrete.ByteArrayOrdering
+    val interval = Interval.closed(Array[Byte](1), Array[Byte](1, 0, 0))
+    interval.points.map(_.toList).toList should equal(
+      List(List[Byte](1), List[Byte](1, 0), List[Byte](1, 0, 0))
+    )
+  }
+
   property("byte array intervals work end to end") {
     implicit val ord: Ordering[Array[Byte]] = Discrete.ByteArrayOrdering
 

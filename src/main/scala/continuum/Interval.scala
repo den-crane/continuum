@@ -155,6 +155,28 @@ final case class Interval[T: Ordering](lower: Cut[T], upper: Cut[T])
   }
 
   /**
+   * Enumerates the points of this interval over a discrete domain, in ascending order. The
+   * iterator is lazy: an interval unbounded above yields points until the domain is exhausted
+   * (`Discrete.next` returns `None`).
+   *
+   * @throws IllegalArgumentException if this interval is unbounded below.
+   */
+  def points(implicit discrete: Discrete[T]): Iterator[T] = {
+    val start = lower match {
+      case BelowValue(cut) => Some(cut)
+      case AboveValue(cut) => discrete.next(cut)
+      case _ =>
+        throw new IllegalArgumentException(
+          "Cannot enumerate the points of an interval unbounded below: " + this
+        )
+    }
+    Iterator.unfold(start.filter(this)) {
+      case Some(p) => Some((p, discrete.next(p).filter(this)))
+      case None    => None
+    }
+  }
+
+  /**
    * Tests if this interval encloses only a single discrete point.
    */
   def isPoint: Boolean = point.isDefined

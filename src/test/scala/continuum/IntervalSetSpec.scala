@@ -141,6 +141,12 @@ class IntervalSetSpec
     }
   }
 
+  property("points enumerates the covered points of all intervals in ascending order") {
+    val set = IntervalSet(Interval.closed(1, 3)) + Interval.closed(10, 12)
+    set.points.toList should equal(List(1, 2, 3, 10, 11, 12))
+    IntervalSet.empty[Int].points.toList should equal(Nil)
+  }
+
   property("The span of an interval set  all intervals in the interval set.") {
     forAll { (set: IntervalSet[Int]) =>
       val span = set.spanOption

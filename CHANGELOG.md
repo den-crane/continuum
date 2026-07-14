@@ -63,6 +63,9 @@ context bounds. A migration table is at the bottom.
 - `NormalizedBound` ADT (`Value` / `Unbounded` / `Empty`) as the result of `Interval.normalize`.
 - `Discrete.prev` (with `Int`/`Long`/`Array[Byte]` implementations) and the non-implicit
   `Discrete.ByteArrayOrdering` (unsigned lexicographic).
+- `Interval.points` and `IntervalSet.points` — lazily enumerate the covered values of a discrete
+  domain in ascending order (Guava `ContiguousSet` equivalent; throws for intervals unbounded
+  below).
 - scalafmt (`sbt scalafmtAll`; CI check: `scalafmtCheckAll`), `versionScheme := early-semver`.
 
 ### Removed

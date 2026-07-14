@@ -155,6 +155,13 @@ final class IntervalSet[T] private (private val tree: TreeSet[Interval[T]])(impl
   def --(that: IterableOnce[Interval[T]]): IntervalSet[T] = difference(that)
 
   /**
+   * Enumerates the points covered by this set over a discrete domain, in ascending order. The
+   * iterator is lazy; it throws `IllegalArgumentException` on first access if the lowest interval
+   * is unbounded below.
+   */
+  def points(implicit discrete: Discrete[T]): Iterator[T] = iterator.flatMap(_.points)
+
+  /**
    * Returns the minimum spanning interval of the intervals in this set, if the set is non-empty.
    * Named `spanOption` to avoid clashing with `Iterable.span(predicate)`.
    */

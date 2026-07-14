@@ -163,6 +163,17 @@ res12: Option[continuum.Interval[Int]] = Some([1, 12])
 The `Discrete[T]` type class describes discrete domains: `next` and `prev` step between adjacent values. Instances are provided for `Int`, `Long`, and `Array[Byte]` (lexicographic, HBase-key style; pair it with the non-implicit `Discrete.ByteArrayOrdering`).
 
 ```scala
+// Intervals and interval sets can enumerate their points over a discrete domain
+scala> Interval.openClosed(1, 4).points.toList
+res10: List[Int] = List(2, 3, 4)
+
+// lazily, for intervals unbounded above (unbounded below throws)
+scala> Interval.atLeast(0).points.take(3).toList
+res11: List[Int] = List(0, 1, 2)
+
+scala> (IntervalSet(Interval.closed(1, 3)) + Interval.closed(10, 12)).points.toList
+res12: List[Int] = List(1, 2, 3, 10, 11, 12)
+
 // Intervals over discrete domains may be normalized to closed-open form.
 // NormalizedBound distinguishes Value, Unbounded, and Empty (no value in the domain).
 scala> Interval.openClosed(10, 20).normalize
