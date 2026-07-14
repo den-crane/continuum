@@ -4,6 +4,8 @@ continuum is a library for working with intervals over continuous, total-ordered
 
 Intervals can be created over any element type with an implicit `Ordering` (`Int`, `Long`, `String`, `Double`, `java.time` types via an ordering, byte arrays via `Discrete.ByteArrayOrdering`, ...).
 
+Release notes and the 0.4 → 0.5.0 migration guide are in [CHANGELOG.md](CHANGELOG.md).
+
 ## Requirements
 
 - Scala 2.13.18 or Scala 3.3 LTS (cross-built; migrated from 2.11.8 by Claude Code)
