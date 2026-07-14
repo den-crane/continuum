@@ -93,7 +93,7 @@ final case class Interval[T: Ordering](lower: GreaterRay[T], upper: LesserRay[T]
     (lower encloses other.lower) && (upper encloses other.upper)
 
   /**
-   * Intervals are compared first by their upper rays, and then by their lower rays.
+   * Intervals are compared first by their lower rays, and then by their upper rays.
    */
   def compare(other: Interval[T]): Int = {
     val c = lower compare other.lower

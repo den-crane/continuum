@@ -118,12 +118,23 @@ class IntervalSet[T: Ordering](tree: RB.Tree[Interval[T], Unit])
     newSet(differences.foldLeft(diff)(RB.update(_, _, (), false)))
   }
 
-  override def contains(interval: Interval[T]): Boolean = {
+  /**
+   * Tests if the given interval is an element of this set. Note that intervals added to the set
+   * are coalesced with connected intervals, so an added interval is not necessarily an element
+   * afterwards. Use `encloses` to test whether this set covers an interval.
+   */
+  override def contains(interval: Interval[T]): Boolean = RB.contains(tree, interval)(ordering)
+
+  /**
+   * Tests if the given interval is entirely covered by this set, i.e., if one of this set's
+   * intervals encloses it.
+   */
+  def encloses(interval: Interval[T]): Boolean = {
     val intersectings = intersecting(interval)
     intersectings.size == 1 && intersectings.head.encloses(interval)
   }
 
-  def containsPoint(point: T): Boolean = contains(Interval.point(point))
+  def containsPoint(point: T): Boolean = encloses(Interval.point(point))
 
   override def iterator: Iterator[Interval[T]] = RB.keysIterator(tree)
 
@@ -169,7 +180,13 @@ class IntervalSet[T: Ordering](tree: RB.Tree[Interval[T], Unit])
     IntervalSet(intersecting(interval).toList.flatMap(_ intersect interval):_*)
 
 
-  def intersect(that: Set[Interval[T]]): IntervalSet[T] =
+  /**
+   * Returns the result of the intervals in this set intersected with each of the given intervals
+   * (a geometric intersection). Unlike the element-wise `intersect(that: collection.Set[...])`
+   * inherited from `Set`, member intervals are clipped against the given intervals, not matched
+   * for equality.
+   */
+  def intersectAll(that: Set[Interval[T]]): IntervalSet[T] =
     that.foldLeft(IntervalSet.empty[T])((acc, interval) => acc ++ this.intersect(interval))
 
   /**

@@ -102,7 +102,7 @@ res1: continuum.IntervalSet[Int] = IntervalSet((10, 25])
 scala> IntervalSet(Interval.open(10, 20)) + Interval.closed(25, 30)
 res2: continuum.IntervalSet[Int] = IntervalSet((10, 20), [25, 30])
 
-scala> IntervalSet(1 to 10) intersect IntervalSet(5 to 15)
+scala> IntervalSet(1 to 10) intersectAll IntervalSet(5 to 15)
 res3: continuum.IntervalSet[Int] = IntervalSet([5, 10])
 
 scala> IntervalSet(1 to 10).complement

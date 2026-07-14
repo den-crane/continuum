@@ -15,7 +15,7 @@ class IntervalSetSpec
   property("An interval set should contain all of its constituent intervals") {
     forAll { (intervals: List[Interval[Int]]) =>
       val intervalSet = IntervalSet(intervals:_*)
-      intervals.forall(intervalSet) should be (true)
+      intervals.forall(intervalSet.encloses) should be (true)
     }
   }
 
@@ -32,7 +32,7 @@ class IntervalSetSpec
 
   property("An interval set does not contain an interval in its difference") {
     forAll { (set: IntervalSet[Int], interval: Interval[Int]) =>
-      (set - interval) contains interval should be (false)
+      (set - interval) encloses interval should be (false)
     }
   }
 
@@ -40,19 +40,47 @@ class IntervalSetSpec
     forAll { (set: IntervalSet[Int], interval: Interval[Int]) =>
       val intersection = set intersect interval
       forAll { i: Interval[Int] =>
-        if (set(i) && interval.encloses(i)) intersection(i) should be (true)
-        else intersection(i) should be (false)
+        if (set.encloses(i) && interval.encloses(i)) intersection.encloses(i) should be (true)
+        else intersection.encloses(i) should be (false)
       }
     }
   }
 
   property("An interval set intersected with an interval set should contain only intervals in common.") {
     forAll { (a: IntervalSet[Int], b: IntervalSet[Int]) =>
-      val intersection = a intersect b
+      val intersection = a intersectAll b
       forAll { i: Interval[Int] =>
-        if (a(i) && b(i)) intersection(i) should be (true)
-        else intersection(i) should be (false)
+        if (a.encloses(i) && b.encloses(i)) intersection.encloses(i) should be (true)
+        else intersection.encloses(i) should be (false)
       }
+    }
+  }
+
+  property("contains is strict set membership") {
+    forAll { (set: IntervalSet[Int], interval: Interval[Int]) =>
+      set.contains(interval) should be (set.iterator.contains(interval))
+    }
+  }
+
+  property("contains does not treat covered intervals as elements") {
+    val set = IntervalSet(Interval.closed(0, 10))
+    set.contains(Interval.closed(0, 10)) should be (true)
+    set.contains(Interval.closed(2, 3)) should be (false)
+    set.encloses(Interval.closed(0, 10)) should be (true)
+    set.encloses(Interval.closed(2, 3)) should be (true)
+    set.encloses(Interval.closed(5, 15)) should be (false)
+    set.encloses(Interval.closed(20, 30)) should be (false)
+  }
+
+  property("An interval set encloses an interval iff one of its intervals encloses it") {
+    forAll { (set: IntervalSet[Int], interval: Interval[Int]) =>
+      set.encloses(interval) should be (set.exists(_ encloses interval))
+    }
+  }
+
+  property("An interval set contains the points of its intervals") {
+    forAll { (set: IntervalSet[Int], point: Int) =>
+      set.containsPoint(point) should be (set.exists(_(point)))
     }
   }
 
@@ -82,7 +110,7 @@ class IntervalSetSpec
     forAll { (set: IntervalSet[Int]) =>
       val span = set.span
       forAll { i: Interval[Int] =>
-        if (set(i)) span.get.encloses(i) should be (true)
+        if (set.encloses(i)) span.get.encloses(i) should be (true)
       }
     }
   }
