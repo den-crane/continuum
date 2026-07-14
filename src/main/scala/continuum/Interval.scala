@@ -127,22 +127,24 @@ final case class Interval[T: Ordering](lower: GreaterRay[T], upper: LesserRay[T]
     upper.tangent.map(lower => Interval(lower, LesserRay(Unbounded())))
 
   /**
-   * Returns a normalized form of this Interval, if possible. The lower bound of a normalized
-   * interval is Closed and the upper bound of a normalized interval is Open. If this interval is
-   * unbounded in some direction, then the corresponding normalized bound will be None.
+   * Returns a normalized form of this Interval over a discrete domain: the lower bound as an
+   * inclusive `Value` and the upper bound as an exclusive `Value`. A side without a bound
+   * normalizes to `Unbounded`; this includes a closed upper bound at the domain's maximum, which
+   * has no exclusive representation. A lower bound open at the domain's maximum normalizes to
+   * `Empty`: the interval contains no values of the discrete domain.
    */
-  def normalize(implicit discrete: Discrete[T]): (Option[T], Option[T]) = {
+  def normalize(implicit discrete: Discrete[T]): (NormalizedBound[T], NormalizedBound[T]) = {
     val l = lower.bound match {
-      case Closed(cut) => Some(cut)
-      case Open(cut)   => discrete.next(cut)
-      case _ => None
+      case Closed(cut) => NormalizedBound.Value(cut)
+      case Open(cut)   => discrete.next(cut).fold[NormalizedBound[T]](NormalizedBound.Empty)(NormalizedBound.Value(_))
+      case Unbounded() => NormalizedBound.Unbounded
     }
     val u = upper.bound match {
-      case Closed(cut) => discrete.next(cut)
-      case Open(cut) => Some(cut)
-      case _ => None
+      case Closed(cut) => discrete.next(cut).fold[NormalizedBound[T]](NormalizedBound.Unbounded)(NormalizedBound.Value(_))
+      case Open(cut)   => NormalizedBound.Value(cut)
+      case Unbounded() => NormalizedBound.Unbounded
     }
-    l -> u
+    (l, u)
   }
 
   /**
@@ -171,22 +173,28 @@ final case class Interval[T: Ordering](lower: GreaterRay[T], upper: LesserRay[T]
   /**
    * Converts this interval to a [[scala.collection.immutable.Range]], if possible.
    *
-   * @throws IllegalArgumentException if the resulting range would contain more than
+   * @throws IllegalArgumentException if a bound cannot be exactly represented as an `Int`, or if
+   *                                  the resulting range would contain more than
    *                                  [[scala.Int.MaxValue]] elements.
    */
   def toRange(implicit num: Numeric[T]): Range = {
+    def toIntExact(value: T): Int = {
+      val i = num.toInt(value)
+      require(num.equiv(num.fromInt(i), value), "Bound " + value + " cannot be exactly represented as an Int.")
+      i
+    }
     val start: Int = lower.bound match {
-      case Closed(c) => num.toInt(c)
+      case Closed(c) => toIntExact(c)
       case Open(c)   => {
-        val i = num.toInt(c)
+        val i = toIntExact(c)
         if (i == Int.MaxValue) return Range(Int.MaxValue, Int.MaxValue)
         else i + 1
       }
       case Unbounded() => Int.MinValue
     }
     upper.bound match {
-      case Closed(c) => Range.inclusive(start, num.toInt(c))
-      case Open(c)   => Range(start, num.toInt(c))
+      case Closed(c) => Range.inclusive(start, toIntExact(c))
+      case Open(c)   => Range(start, toIntExact(c))
       case Unbounded() => Range.inclusive(start, Int.MaxValue)
     }
   }

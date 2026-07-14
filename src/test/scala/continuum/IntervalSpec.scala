@@ -151,4 +151,50 @@ class IntervalSpec
       interval difference full should equal (Set())
     }
   }
+
+  /**
+   * normalize
+   */
+
+  property("normalize converts bounds to closed-open form") {
+    import NormalizedBound.{Empty, Unbounded, Value}
+    Interval.closed(1, 5).normalize should be ((Value(1), Value(6)))
+    Interval.open(1, 5).normalize should be ((Value(2), Value(5)))
+    Interval.closedOpen(1, 5).normalize should be ((Value(1), Value(5)))
+    Interval.openClosed(1, 5).normalize should be ((Value(2), Value(6)))
+    Interval.atLeast(5).normalize should be ((Value(5), Unbounded))
+    Interval.atMost(5).normalize should be ((Unbounded, Value(6)))
+    Interval.all[Int].normalize should be ((Unbounded, Unbounded))
+  }
+
+  property("normalize distinguishes empty-in-domain from unbounded at the domain edges") {
+    import NormalizedBound.{Empty, Unbounded, Value}
+    Interval.greaterThan(Int.MaxValue).normalize should be ((Empty, Unbounded))
+    Interval.closed(0, Int.MaxValue).normalize should be ((Value(0), Unbounded))
+    Interval.atLeast(Int.MaxValue).normalize should be ((Value(Int.MaxValue), Unbounded))
+  }
+
+  /**
+   * toRange
+   */
+
+  property("toRange matches normalize on ranges which fit in Ints") {
+    import NormalizedBound.Value
+    forAll(genIntervalRange) { (interval: Interval[Int]) =>
+      val range = interval.toRange
+      interval.normalize match {
+        case (Value(l), Value(u)) =>
+          range.start should be (l)
+          range.end should be (if (range.isInclusive) u - 1 else u)
+        case _ => succeed
+      }
+    }
+  }
+
+  property("toRange rejects bounds which do not fit exactly in an Int") {
+    an [IllegalArgumentException] should be thrownBy Interval.closed(0L, 5000000000L).toRange
+    an [IllegalArgumentException] should be thrownBy Interval.atMost(Long.MinValue).toRange
+    an [IllegalArgumentException] should be thrownBy Interval.closed(1.0, 2.5).toRange
+    Interval.closed(1L, 5L).toRange should equal (Range.inclusive(1, 5))
+  }
 }
