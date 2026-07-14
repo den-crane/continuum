@@ -55,7 +55,7 @@ The library is built on a hierarchy of abstractions from low-level to high-level
    - Immutable, persistent set of intervals
    - Automatically coalesces overlapping/tangent intervals
    - Implements full Scala `SortedSet` API
-   - Backed by Red-Black tree for efficient operations
+   - Backed by an immutable `TreeSet` for efficient operations
 
 ### Discrete Domain Support
 
@@ -75,7 +75,7 @@ Tests use ScalaTest with property-based testing (ScalaCheck):
 ## Key Implementation Details
 
 - All types require an implicit `Ordering[T]` for comparison (context bound style)
-- `IntervalSet` is placed in `scala.collection.immutable` package to extend `SortedSet`
+- `IntervalSet` lives in the `continuum` package and wraps an immutable `TreeSet`; the coalescing invariant (members are pairwise disjoint and non-tangent) makes candidate lookup a contiguous run reachable via `maxBefore`/`iteratorFrom`
 - The validation logic ensures intervals are never empty at construction time
 - Ray intersection/tangent logic is the foundation for interval operations
 
