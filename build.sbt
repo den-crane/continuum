@@ -2,10 +2,18 @@ organization := "danburkert"
 
 name := "continuum"
 
-version := "0.4-SNAPSHOT"
+version := "0.5.0"
 
-scalaVersion := "2.11.8"
+versionScheme := Some("early-semver")
 
-libraryDependencies += "org.scalacheck" % "scalacheck_2.11" % "1.13.2" % "provided"
+scalaVersion := "2.13.18"
 
-libraryDependencies += "org.scalatest" % "scalatest_2.11" % "3.0.0" % "test"
+crossScalaVersions := Seq("2.13.18", "3.3.7")
+
+scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
+
+libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.19.0" % "test"
+
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.20" % "test"
+
+libraryDependencies += "org.scalatestplus" %% "scalacheck-1-19" % "3.2.20.0" % "test"

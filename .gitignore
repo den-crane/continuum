@@ -5,3 +5,13 @@ target/
 *.swo
 .cache
 .history
+
+# BSP (Build Server Protocol)
+.bsp/
+
+# SBT - ignore generated project dirs but track build.properties and *.sbt
+project/target/
+project/project/
+.metals/
+.bloop/
+.sbt-hydra-history

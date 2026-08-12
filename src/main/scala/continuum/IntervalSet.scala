@@ -1,187 +1,204 @@
-package scala.collection.immutable
+package continuum
 
-import scala.collection.generic.CanBuildFrom
-import scala.collection.immutable.{RedBlackTree => RB}
-import scala.collection.{GenSet, SortedSetLike, mutable}
+import scala.collection.immutable.{SortedSet, TreeSet}
 
-import continuum.Interval
+object IntervalSet {
 
-object IntervalSet extends {
-  def empty[T](implicit conv: T=>Ordered[T]): IntervalSet[T] = new IntervalSet()
+  def empty[T: Ordering]: IntervalSet[T] = new IntervalSet(TreeSet.empty[Interval[T]])
 
-  def apply[T](intervals: Interval[T]*)(implicit conv: T=>Ordered[T]): IntervalSet[T] =
-    intervals.foldLeft(empty[T])(_ + _)
+  def apply[T: Ordering](intervals: Interval[T]*): IntervalSet[T] = from(intervals)
 
-  def newBuilder[T](implicit conv: T=>Ordered[T]): mutable.Builder[Interval[T], IntervalSet[T]] =
-    new mutable.SetBuilder[Interval[T], IntervalSet[T]](empty)
-
-  implicit def canBuildFrom[T](implicit conv: T=>Ordered[T])
-  : CanBuildFrom[IntervalSet[_], Interval[T], IntervalSet[T]] =
-    new CanBuildFrom[IntervalSet[_], Interval[T], IntervalSet[T]] {
-      def apply(from: IntervalSet[_]): mutable.Builder[Interval[T], IntervalSet[T]] = newBuilder[T]
-      def apply(): mutable.Builder[Interval[T], IntervalSet[T]] = newBuilder[T]
-    }
+  def from[T: Ordering](intervals: IterableOnce[Interval[T]]): IntervalSet[T] =
+    intervals.iterator.foldLeft(empty[T])(_ + _)
 }
 
 /**
- * A set containing 0 or more intervals. Intervals which may be unioned together are automatically
+ * A set of 0 or more intervals. Intervals which may be unioned together are automatically
  * coalesced, so at all times an interval set contains the minimum number of necessary intervals.
  * Interval sets are immutable and persistent.
+ *
+ * An interval set is deliberately not a scala `Set[Interval[T]]`: its operations are geometric —
+ * adding an interval coalesces it with connected members, removing an interval clips members —
+ * which cannot satisfy the `Set` contract that an added element is subsequently contained. It is
+ * an `Iterable` of its members in sorted order; the member set with strict element semantics is
+ * available through `intervals`.
+ *
+ * Because members are always coalesced they are pairwise disjoint and non-tangent, so the members
+ * which intersect or connect a given interval form a contiguous run in member order. Candidate
+ * lookup therefore needs only the sorted-set API (`maxBefore` plus `iteratorFrom`) and runs in
+ * O(log n + k).
  */
-class IntervalSet[T](tree: RB.Tree[Interval[T], Unit])(implicit conv: T=>Ordered[T])
-  extends SortedSet[Interval[T]]
-  with SortedSetLike[Interval[T], IntervalSet[T]]
-  with Serializable {
+final class IntervalSet[T] private (private val tree: TreeSet[Interval[T]])(implicit
+    ord: Ordering[T]
+) extends (T => Boolean)
+    with scala.collection.immutable.Iterable[Interval[T]]
+    with Serializable {
 
-  def this()(implicit conv: T=>Ordered[T]) = this(null)
-
-  override def ordering: Ordering[Interval[T]] = Ordering.ordered
-
-  override def stringPrefix = "IntervalSet"
-
-  override def size = RB.count(tree)
-
-  override def head = RB.smallest(tree).key
-  override def headOption = if (RB.isEmpty(tree)) None else Some(head)
-  override def last = RB.greatest(tree).key
-  override def lastOption = if (RB.isEmpty(tree)) None else Some(last)
-
-  override def tail = new IntervalSet(RB.delete(tree, firstKey))
-  override def init = new IntervalSet(RB.delete(tree, lastKey))
-
-  override def drop(n: Int) = {
-    if (n <= 0) this
-    else if (n >= size) empty
-    else newSet(RB.drop(tree, n))
-  }
-
-  override def take(n: Int) = {
-    if (n <= 0) empty
-    else if (n >= size) this
-    else newSet(RB.take(tree, n))
-  }
-
-  override def slice(from: Int, until: Int) = {
-    if (until <= from) empty
-    else if (from <= 0) take(until)
-    else if (until >= size) drop(from)
-    else newSet(RB.slice(tree, from, until))
-  }
-
-  override def dropRight(n: Int) = take(size - n)
-  override def takeRight(n: Int) = drop(size - n)
-  override def splitAt(n: Int) = (take(n), drop(n))
-
-  private[this] def countWhile(p: Interval[T] => Boolean): Int = {
-    var result = 0
-    val it = iterator
-    while (it.hasNext && p(it.next())) result += 1
-    result
-  }
-  override def dropWhile(p: Interval[T] => Boolean) = drop(countWhile(p))
-  override def takeWhile(p: Interval[T] => Boolean) = take(countWhile(p))
-  override def span(p: Interval[T] => Boolean) = splitAt(countWhile(p))
-
-  private def newSet(t: RB.Tree[Interval[T], Unit]) = new IntervalSet(t)
-
-  override def empty: IntervalSet[T] = IntervalSet.empty
-
-  override def + (interval: Interval[T]): IntervalSet[T] = {
-    val unionables: IntervalSet[T] = unioning(interval)
-    val union = unionables.foldLeft(interval)((a, b) => (a union b).get)
-    val diff = unionables.foldLeft(tree)(RB.delete(_, _))
-    newSet(RB.update(diff, union, (), false))
-  }
-
-  override def - (interval: Interval[T]): IntervalSet[T] = {
-    val intersectings = intersecting(interval)
-    val differences = intersectings.flatMap(_ difference interval)
-    val diff = intersectings.foldLeft(tree)(RB.delete(_, _))
-    newSet(differences.foldLeft(diff)(RB.update(_, _, (), false)))
-  }
-
-  override def contains(interval: Interval[T]): Boolean = {
-    val intersectings = intersecting(interval)
-    intersectings.size == 1 && intersectings.head.encloses(interval)
-  }
-
-  def containsPoint(point: T): Boolean = contains(Interval.point(point))
-
-  override def iterator: Iterator[Interval[T]] = RB.keysIterator(tree)
-
-  def keysIteratorFrom(start: Interval[T]): Iterator[Interval[T]] = {
-    val keys = RB.keysIterator(tree)
-    keys.drop(keys.indexOf(start))
-  }
-
-  override def foreach[U](f: Interval[T] =>  U) = RB.foreachKey(tree, f)
-
-  override def rangeImpl(from: Option[Interval[T]], until: Option[Interval[T]]): IntervalSet[T] = newSet(RB.rangeImpl(tree, from, until))
-  override def range(from: Interval[T], until: Interval[T]): IntervalSet[T] = newSet(RB.range(tree, from, until))
-  override def from(from: Interval[T]): IntervalSet[T] = newSet(RB.from(tree, from))
-  override def to(to: Interval[T]): IntervalSet[T] = newSet(RB.to(tree, to))
-  override def until(until: Interval[T]): IntervalSet[T] = newSet(RB.until(tree, until))
-
-  override def firstKey = head
-  override def lastKey = last
+  override def iterator: Iterator[Interval[T]] = tree.iterator
+  override def size: Int = tree.size
+  override def knownSize: Int = tree.size
+  override def isEmpty: Boolean = tree.isEmpty
+  override def head: Interval[T] = tree.head
+  override def last: Interval[T] = tree.last
 
   /**
-   * Returns the subset of intervals which intersect with the given interval.
+   * The members of this set, in sorted order, with strict element semantics.
    */
-  def intersecting(interval: Interval[T]): IntervalSet[T] = {
-    val buf = mutable.ArrayBuffer[Interval[T]]()
-    def loop(t: RB.Tree[Interval[T], Unit]): Unit = {
-      if (!RB.isEmpty(t)) {
-        if (t.key intersects interval) buf += t.key
-        if (!RB.isEmpty(t.left) && (RB.greatest(t.left).key.upper intersects interval.lower))
-          loop(t.left)
-        if (!RB.isEmpty(t.right) && (RB.smallest(t.right).key.lower intersects interval.upper))
-           loop(t.right)
-      }
-    }
-    loop(tree)
-    IntervalSet(buf.toArray:_*)
+  def intervals: SortedSet[Interval[T]] = tree
+
+  /**
+   * Returns the members satisfying `p`, where `p` selects members intersecting or connecting the
+   * given interval. Since members are pairwise disjoint and non-tangent, such members form a
+   * contiguous run: the only candidate sorting before the interval is its immediate predecessor,
+   * and candidates sorting after it form a prefix of `iteratorFrom`.
+   */
+  private def selectConnected(interval: Interval[T], p: Interval[T] => Boolean): List[Interval[T]] =
+    tree.maxBefore(interval).filter(p).toList ::: tree.iteratorFrom(interval).takeWhile(p).toList
+
+  /**
+   * Returns this set with the given interval added, coalescing it with any connected members.
+   */
+  def incl(interval: Interval[T]): IntervalSet[T] = {
+    val unionables = selectConnected(interval, _ unions interval)
+    val union = unionables.foldLeft(interval)((a, b) => (a union b).get)
+    new IntervalSet(tree -- unionables + union)
+  }
+
+  /** Alias for `incl`. */
+  def +(interval: Interval[T]): IntervalSet[T] = incl(interval)
+
+  /**
+   * Returns this set with the given interval subtracted: members intersecting it are clipped, and
+   * members it encloses are removed.
+   */
+  def excl(interval: Interval[T]): IntervalSet[T] = {
+    val intersectings = selectConnected(interval, _ intersects interval)
+    val differences = intersectings.flatMap(_ difference interval)
+    new IntervalSet(tree -- intersectings ++ differences)
+  }
+
+  /** Alias for `excl`. */
+  def -(interval: Interval[T]): IntervalSet[T] = excl(interval)
+
+  /**
+   * Tests if the given point is covered by this set.
+   */
+  override def apply(point: T): Boolean = containsPoint(point)
+
+  /**
+   * Tests if the given point is covered by this set.
+   */
+  def containsPoint(point: T): Boolean = encloses(Interval.point(point))
+
+  /**
+   * Tests if the given interval is entirely covered by this set, i.e., if one of this set's
+   * intervals encloses it.
+   */
+  def encloses(interval: Interval[T]): Boolean = {
+    val intersectings = selectConnected(interval, _ intersects interval)
+    intersectings.size == 1 && intersectings.head.encloses(interval)
   }
 
   /**
    * Tests if the provided interval intersects with any of the intervals in this set.
    */
-  def intersects(interval: Interval[T]): Boolean = from(interval).head intersects interval
+  def intersects(interval: Interval[T]): Boolean =
+    selectConnected(interval, _ intersects interval).nonEmpty
 
   /**
-   * Returns the the result of the intervals in this set intersected with the given interval.
+   * Returns the subset of intervals which intersect with the given interval.
    */
-  def intersect(interval: Interval[T]): IntervalSet[T] =
-    IntervalSet(intersecting(interval).toList.flatMap(_ intersect interval):_*)
-
-
-  override def intersect(other: GenSet[Interval[T]]): IntervalSet[T] =
-    other.foldLeft(empty)(_ ++ intersect(_))
-
-  /**
-   * Alias for `intersect`.
-   */
-  def &(interval: Interval[T]): IntervalSet[T] = intersect(interval)
+  def intersecting(interval: Interval[T]): IntervalSet[T] =
+    new IntervalSet(TreeSet.from(selectConnected(interval, _ intersects interval)))
 
   /**
    * Returns the subset of intervals which union with the given interval.
    */
-  def unioning(interval: Interval[T]): IntervalSet[T] = {
-    val buf = mutable.ArrayBuffer[Interval[T]]()
-    def loop(tree: RB.Tree[Interval[T], Unit]): Unit = {
-      if(!RB.isEmpty(tree)) {
-        if (tree.key unions interval) buf += tree.key
-        if (!RB.isEmpty(tree.left) && (RB.greatest(tree.left).key.upper connects interval.lower))
-          loop(tree.left)
-        if (!RB.isEmpty(tree.right) && (RB.smallest(tree.right).key.lower connects interval.upper))
-          loop(tree.right)
-      }
-    }
-    loop(tree)
-    IntervalSet(buf.toArray:_*)
+  def unioning(interval: Interval[T]): IntervalSet[T] =
+    new IntervalSet(TreeSet.from(selectConnected(interval, _ unions interval)))
+
+  /**
+   * Returns the result of the intervals in this set intersected with the given interval.
+   */
+  def intersect(interval: Interval[T]): IntervalSet[T] = {
+    val clipped = selectConnected(interval, _ intersects interval).flatMap(_ intersect interval)
+    new IntervalSet(TreeSet.from(clipped))
   }
 
-  def span: Option[Interval[T]] = if (!RB.isEmpty(tree)) Some(head span last) else None
+  /** Alias for `intersect`. */
+  def &(interval: Interval[T]): IntervalSet[T] = intersect(interval)
 
-  def complement: IntervalSet[T] = IntervalSet(Interval.all[T]) -- this
+  /**
+   * Returns the result of the intervals in this set intersected with each of the given intervals.
+   */
+  def intersect(that: IterableOnce[Interval[T]]): IntervalSet[T] =
+    that.iterator.foldLeft(IntervalSet.empty[T])((acc, interval) =>
+      acc union this.intersect(interval)
+    )
+
+  /**
+   * Returns this set with all of the given intervals added.
+   */
+  def union(that: IterableOnce[Interval[T]]): IntervalSet[T] =
+    that.iterator.foldLeft(this)(_ + _)
+
+  /** Alias for `union`. */
+  def ++(that: IterableOnce[Interval[T]]): IntervalSet[T] = union(that)
+
+  /**
+   * Returns this set with all of the given intervals subtracted.
+   */
+  def difference(that: IterableOnce[Interval[T]]): IntervalSet[T] =
+    that.iterator.foldLeft(this)(_ - _)
+
+  /** Alias for `difference`. */
+  def --(that: IterableOnce[Interval[T]]): IntervalSet[T] = difference(that)
+
+  /**
+   * Enumerates the points covered by this set over a discrete domain, in ascending order. The
+   * iterator is lazy; it throws `IllegalArgumentException` on first access if the lowest interval
+   * is unbounded below.
+   */
+  def points(implicit discrete: Discrete[T]): Iterator[T] = iterator.flatMap(_.points)
+
+  /**
+   * Returns the minimum spanning interval of the intervals in this set, if the set is non-empty.
+   * Named `spanOption` to avoid clashing with `Iterable.span(predicate)`.
+   */
+  def spanOption: Option[Interval[T]] = if (tree.nonEmpty) Some(tree.head span tree.last) else None
+
+  /**
+   * Returns the bounded gaps between consecutive intervals of this set.
+   */
+  def gaps: IntervalSet[T] = new IntervalSet(TreeSet.from(gapIntervals))
+
+  /**
+   * Returns the interval set covering exactly the points not covered by this set: the gaps plus
+   * the unbounded pieces on either side. Built in a single pass over the sorted members.
+   */
+  def complement: IntervalSet[T] =
+    if (tree.isEmpty) IntervalSet(Interval.all[T])
+    else {
+      val buf = List.newBuilder[Interval[T]]
+      if (tree.head.lower != Cut.BelowAll) buf += Interval(Cut.BelowAll, tree.head.lower)
+      buf ++= gapIntervals
+      if (tree.last.upper != Cut.AboveAll) buf += Interval(tree.last.upper, Cut.AboveAll)
+      new IntervalSet(TreeSet.from(buf.result()))
+    }
+
+  /**
+   * The gap between each pair of consecutive members. Valid intervals because members are
+   * pairwise disjoint and non-tangent, and safe to insert directly for the same reason.
+   */
+  private def gapIntervals: Iterator[Interval[T]] =
+    iterator.sliding(2).withPartial(false).map(pair => Interval(pair(0).upper, pair(1).lower))
+
+  override def equals(other: Any): Boolean = other match {
+    case that: IntervalSet[_] => tree == that.tree
+    case _                    => false
+  }
+
+  override def hashCode(): Int = tree.hashCode()
+
+  override def toString: String = mkString("IntervalSet(", ", ", ")")
 }

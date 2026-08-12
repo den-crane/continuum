@@ -1,15 +1,12 @@
 package continuum
 
-import org.scalatest.prop.GeneratorDrivenPropertyChecks
-import org.scalatest.{PropSpec, Matchers}
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
 import continuum.test.Generators
 
-class IntervalSpec
-  extends PropSpec
-  with GeneratorDrivenPropertyChecks
-  with Matchers
-  with Generators {
+class IntervalSpec extends AnyPropSpec with ScalaCheckPropertyChecks with Matchers with Generators {
 
   /**
    * intersection properties
@@ -24,26 +21,26 @@ class IntervalSpec
       val bu = bounds(3)
 
       // unbounded above & closed
-      Interval.atLeast(al) intersects Interval.closed(bl, bu) should be (true)
+      Interval.atLeast(al) intersects Interval.closed(bl, bu) should be(true)
 
       // closed & closed
-      Interval.closed(al, au) intersects Interval.closed(bl, bu) should be (true)
+      Interval.closed(al, au) intersects Interval.closed(bl, bu) should be(true)
 
       whenever(bl < au) {
 
         whenever(al < au) {
           // open & closed
-          Interval.open(al, au) intersects Interval.closed(bl, bu) should be (true)
+          Interval.open(al, au) intersects Interval.closed(bl, bu) should be(true)
         }
 
         whenever(bl < bu) {
           // closed & open
-          Interval.closed(al, au) intersects Interval.open(bl, bu) should be (true)
+          Interval.closed(al, au) intersects Interval.open(bl, bu) should be(true)
         }
 
         whenever(al < au && bl < bu) {
           // open & open
-          Interval.open(al, au) intersects Interval.open(bl, bu) should be (true)
+          Interval.open(al, au) intersects Interval.open(bl, bu) should be(true)
         }
       }
     }
@@ -52,33 +49,35 @@ class IntervalSpec
   property("If intervals contain a point in common, then the intervals intersect") {
     forAll(genIntervalRange, genIntervalRange) { (a: Interval[Int], b: Interval[Int]) =>
       whenever(a.toRange.nonEmpty && b.toRange.nonEmpty) {
-        (a intersect b).fold(false)(_.toRange.nonEmpty) should equal (a.toRange.intersect(b.toRange).nonEmpty)
+        (a intersect b).fold(false)(_.toRange.nonEmpty) should equal(
+          a.toRange.intersect(b.toRange).nonEmpty
+        )
       }
     }
   }
 
   property("interval intersection is commutative") {
     forAll { (a: Interval[Int], b: Interval[Int]) =>
-      a intersect b should equal (b intersect a)
+      a intersect b should equal(b intersect a)
     }
   }
 
   property("interval intersection is associative") {
     forAll { (a: Interval[Int], b: Interval[Int], c: Interval[Int]) =>
-      (a intersect b).flatMap(_ intersect c) should equal ((b intersect c).flatMap(_ intersect a))
+      (a intersect b).flatMap(_ intersect c) should equal((b intersect c).flatMap(_ intersect a))
     }
   }
 
   property("interval intersection is idempotent") {
     forAll { (interval: Interval[Int]) =>
-      interval intersect interval should equal (Some(interval))
+      interval intersect interval should equal(Some(interval))
     }
   }
 
   property("interval intersection identity") {
     forAll { (interval: Interval[Int]) =>
       val full = Interval.full[Int]
-      interval intersect full should equal (Some(interval))
+      interval intersect full should equal(Some(interval))
     }
   }
 
@@ -88,26 +87,26 @@ class IntervalSpec
 
   property("intervals union if they overlap or are tangent.") {
     forAll { (a: Interval[Int], b: Interval[Int]) =>
-      (a intersects b) || (a tangents b) should equal (a unions b)
+      (a intersects b) || (a tangents b) should equal(a unions b)
     }
   }
 
   property("interval union is commutative") {
     forAll { (a: Interval[Int], b: Interval[Int]) =>
-      a union b should equal (b union a)
+      a union b should equal(b union a)
     }
   }
 
   property("interval union is idempotent") {
     forAll { (interval: Interval[Int]) =>
-      interval union interval should equal (Some(interval))
+      interval union interval should equal(Some(interval))
     }
   }
 
   property("interval union is dominated by the full interval") {
     forAll { (interval: Interval[Int]) =>
       val full = Interval.full[Int]
-      full union interval should equal (Some(full))
+      full union interval should equal(Some(full))
     }
   }
 
@@ -118,7 +117,7 @@ class IntervalSpec
   property("interval union absorbtion") {
     forAll { (a: Interval[Int], b: Interval[Int]) =>
       whenever(a intersects b) {
-        (a intersect b).get union a should equal (Some(a))
+        (a intersect b).get union a should equal(Some(a))
       }
     }
   }
@@ -132,22 +131,154 @@ class IntervalSpec
       val difference = a difference b
       val contains = difference.exists(_.apply(point))
       if (a(point)) {
-        if (b(point)) contains should be (false)
-        else contains should be (true)
-      } else contains should be (false)
+        if (b(point)) contains should be(false)
+        else contains should be(true)
+      } else contains should be(false)
     }
   }
 
   property("interval difference zero") {
     forAll { (interval: Interval[Int]) =>
-      interval difference interval should equal (Set())
+      interval difference interval should equal(IntervalSet.empty[Int])
     }
   }
 
   property("interval difference identity") {
     forAll { (interval: Interval[Int]) =>
       val full = Interval.full[Int]
-      interval difference full should equal (Set())
+      interval difference full should equal(IntervalSet.empty[Int])
     }
+  }
+
+  /**
+   * map, lesser/greater, conversions
+   */
+
+  property("map with a monotonic function preserves containment") {
+    forAll { (interval: Interval[Int], point: Int) =>
+      val mapped = interval.map(_.toLong * 2)
+      mapped(point.toLong * 2) should be(interval(point))
+    }
+  }
+
+  property("map with identity is identity") {
+    forAll { (interval: Interval[Int]) =>
+      interval.map(identity[Int]) should equal(interval)
+    }
+  }
+
+  property("lesser and greater partition the space around the interval") {
+    forAll { (interval: Interval[Int]) =>
+      interval.lesser.isDefined should be(interval.lower != Cut.BelowAll)
+      interval.greater.isDefined should be(interval.upper != Cut.AboveAll)
+      interval.lesser.foreach { lesser =>
+        lesser intersects interval should be(false)
+        lesser tangents interval should be(true)
+        lesser union interval should equal(Some(Interval(Cut.BelowAll, interval.upper)))
+      }
+      interval.greater.foreach { greater =>
+        greater intersects interval should be(false)
+        greater tangents interval should be(true)
+        greater union interval should equal(Some(Interval(interval.lower, Cut.AboveAll)))
+      }
+    }
+  }
+
+  property("tuples convert to closed-open intervals") {
+    forAll { (a: Int, b: Int) =>
+      whenever(a < b) {
+        val interval: Interval[Int] = (a, b)
+        interval should equal(Interval.closedOpen(a, b))
+      }
+    }
+  }
+
+  property("ranges convert to intervals and back") {
+    forAll { (range: Range) =>
+      val interval: Interval[Int] = range
+      interval should equal(Interval.closed(range.start, range.end))
+      interval.toRange should equal(range)
+    }
+  }
+
+  property("range conversions respect inclusiveness and reject non-unit steps") {
+    (1 until 10: Interval[Int]) should equal(Interval.closedOpen(1, 10))
+    (1 to 10: Interval[Int]) should equal(Interval.closed(1, 10))
+    an[IllegalArgumentException] should be thrownBy Interval.fromRange(1 to 10 by 2)
+  }
+
+  /**
+   * normalize
+   */
+
+  property("normalize converts bounds to closed-open form") {
+    import NormalizedBound.{Empty, Unbounded, Value}
+    Interval.closed(1, 5).normalize should be((Value(1), Value(6)))
+    Interval.open(1, 5).normalize should be((Value(2), Value(5)))
+    Interval.closedOpen(1, 5).normalize should be((Value(1), Value(5)))
+    Interval.openClosed(1, 5).normalize should be((Value(2), Value(6)))
+    Interval.atLeast(5).normalize should be((Value(5), Unbounded))
+    Interval.atMost(5).normalize should be((Unbounded, Value(6)))
+    Interval.all[Int].normalize should be((Unbounded, Unbounded))
+  }
+
+  property("normalize distinguishes empty-in-domain from unbounded at the domain edges") {
+    import NormalizedBound.{Empty, Unbounded, Value}
+    Interval.greaterThan(Int.MaxValue).normalize should be((Empty, Unbounded))
+    Interval.closed(0, Int.MaxValue).normalize should be((Value(0), Unbounded))
+    Interval.atLeast(Int.MaxValue).normalize should be((Value(Int.MaxValue), Unbounded))
+  }
+
+  /**
+   * points
+   */
+
+  property("points enumerates exactly the values of toRange") {
+    forAll(genIntervalRange) { (interval: Interval[Int]) =>
+      whenever(interval.lower != Cut.BelowAll) {
+        interval.points.toList should equal(interval.toRange.toList)
+      }
+    }
+  }
+
+  property("points respects bound shapes and domain edges") {
+    Interval.closed(1, 3).points.toList should equal(List(1, 2, 3))
+    Interval.open(1, 3).points.toList should equal(List(2))
+    Interval.closedOpen(1, 3).points.toList should equal(List(1, 2))
+    Interval.point(5).points.toList should equal(List(5))
+    Interval.atLeast(Int.MaxValue).points.toList should equal(List(Int.MaxValue))
+    Interval.greaterThan(Int.MaxValue).points.toList should equal(Nil)
+  }
+
+  property("points is lazy for intervals unbounded above") {
+    Interval.atLeast(0).points.take(3).toList should equal(List(0, 1, 2))
+  }
+
+  property("points rejects intervals unbounded below") {
+    an[IllegalArgumentException] should be thrownBy Interval.lessThan(5).points
+  }
+
+  /**
+   * toRange
+   */
+
+  property("toRange matches normalize on ranges which fit in Ints") {
+    import NormalizedBound.Value
+    forAll(genIntervalRange) { (interval: Interval[Int]) =>
+      val range = interval.toRange
+      interval.normalize match {
+        case (Value(l), Value(u)) =>
+          range.start should be(l)
+          range.end should be(if (range.isInclusive) u - 1 else u)
+        case _ => succeed
+      }
+    }
+  }
+
+  property("toRange rejects bounds which do not fit exactly in an Int") {
+    an[IllegalArgumentException] should be thrownBy Interval.closed(0L, 5000000000L).toRange
+    an[IllegalArgumentException] should be thrownBy Interval.atMost(Long.MinValue).toRange
+    an[IllegalArgumentException] should be thrownBy Interval.closed(1.0, 2.5).toRange
+    Interval.closed(1L, 5L).toRange should equal(Range.inclusive(1, 5))
   }
 }
